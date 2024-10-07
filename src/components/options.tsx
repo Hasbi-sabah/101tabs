@@ -4,7 +4,7 @@ import { Label } from "../components/ui/label"
 import { Button } from "../components/ui/button"
 import { Slider } from "../components/ui/slider"
 
-export default function Options({ handleOptionsCancel }: { handleOptionsCancel: () => void }) {
+export default function Options({ handleCancel }: { handleCancel: () => void }) {
     const [tabLimit, setTabLimit] = useState(7)
     const [expirationDays, setExpirationDays] = useState(3)
 
@@ -60,7 +60,7 @@ export default function Options({ handleOptionsCancel }: { handleOptionsCancel: 
                 </form>
             </CardContent>
             <CardFooter className="flex justify-between">
-                <Button onClick={handleOptionsCancel} variant="outline">Cancel</Button>
+                <Button onClick={handleCancel} variant="outline">Cancel</Button>
                 <Button onClick={handleSubmit}>Save Changes</Button>
             </CardFooter>
         </Card>

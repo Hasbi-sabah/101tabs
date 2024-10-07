@@ -3,6 +3,7 @@ import { Button } from '../components/ui/button';
 import MainPopUp from '../components/mainPopUp';
 import Options from '../components/options';
 import { MiniTab } from '../utils/types.s';
+import Dialog from '../components/dialog';
 
 export default function Popup(): JSX.Element {
   const [current, setCurrent] = useState<string>("main");
@@ -19,19 +20,22 @@ export default function Popup(): JSX.Element {
       }
     });
     const handleMessage = (message: any) => {
-      if (message.type === 'EXPIRING_TABS') setExpiringTabs(message.tabs);
+      if (message.type === 'EXPIRING_TABS') {setExpiringTabs(message.tabs); setCurrent('dialog');}
     };
     chrome.runtime.onMessage.addListener(handleMessage);
     return () => chrome.runtime.onMessage.removeListener(handleMessage);    
   }, []);
-  const handleOptionsCancel = () => {
+  const handleCancel = () => {
     setCurrent('main');     
   }
+  if (current === 'dialog') {
+    return <Dialog handleReview={() => {}} expiringTabsLength={expiringTabs.length} />;
+  } 
   return (
     <div>
       <Button onClick={() => setCurrent('main')} >main</Button>
       <Button onClick={() => setCurrent('options')}>options</Button>
-      {current === 'main' ? <MainPopUp tabs={tabs} expiringTabs={expiringTabs} /> : <Options handleOptionsCancel={handleOptionsCancel}/>}
+      {current === 'main' ? <MainPopUp tabs={tabs} expiringTabs={expiringTabs} /> : <Options handleCancel={handleCancel}/>}
     </div>
   )
 }

@@ -26,6 +26,16 @@ function getIconForUrl(url: string | undefined): string {
 //     const nextDay = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
 //     return nextDay.getTime() - now.getTime();
 // }
+
+chrome.runtime.onInstalled.addListener(() => {
+    chrome.storage.local.set({ expiringTabs: [], tempList: [], tabLimit: 7, expirationDays: 3 * 24 * 60 * 60 * 1000 })
+    chrome.alarms.create('dailyJob', {
+        when: Date.now(),
+        periodInMinutes: 1
+        // periodInMinutes: 24 * 60
+    });
+});
+
 chrome.runtime.onMessage.addListener((message, _, sendResponse) => {
     if (message.type === 'REQUEST_TABS_INFO') {
         chrome.storage.local.get({ tempList: [] }, (result) => {
@@ -38,7 +48,8 @@ chrome.runtime.onMessage.addListener((message, _, sendResponse) => {
 
 chrome.tabs.onCreated.addListener((tab) => {
     chrome.tabs.query({ windowId: tab.windowId }, async (tabs) => {
-        const { tabLimit, expirationDate } = await chrome.storage.local.get(["tabLimit", "expirationDays"]);
+        // const { tabLimit, expirationDate } = await chrome.storage.local.get(["tabLimit", "expirationDays"]);
+        const { tabLimit } = await chrome.storage.local.get(["tabLimit", "expirationDays"]);
         if (tabs.length > tabLimit) {
             let leastVisitedTab = tabs[0];
             tabs.forEach((t) => {
@@ -55,7 +66,7 @@ chrome.tabs.onCreated.addListener((tab) => {
                     title: leastVisitedTab.title || 'No title',
                     url: leastVisitedTab.url || '',
                     icon: leastVisitedTab.favIconUrl || getIconForUrl(leastVisitedTab.url),
-                    expiration: Date.now() + expirationDate
+                    expiration: Date.now() + 2 * 60 * 1000
                 }
                 chrome.storage.local.get({ tempList: [] }, (result) => {
                     console.log(result)
@@ -74,25 +85,23 @@ chrome.tabs.onCreated.addListener((tab) => {
     });
 });
 
-chrome.runtime.onInstalled.addListener(() => {
-    chrome.storage.local.set({ tempList: [], tabLimit: 7, expirationDays: 3 * 24 * 60 * 60 * 1000 })
-    chrome.alarms.create('dailyJob', {
-        when: Date.now(),
-        periodInMinutes: 24 * 60
-    });
-});
 
 chrome.alarms.onAlarm.addListener((alarm) => {
     if (alarm.name === 'dailyJob') {
-        chrome.storage.local.get({ tempList: [] }, (result) => {
-            const tabs = result.tempList || [];
+        chrome.storage.local.get({ tempList: [] }, async (result) => {
+            const { expiringTabs: expiredTabs } = await chrome.storage.local.get({ expiringTabs: [] });
+            let tabs = result.tempList || [];
+            tabs = tabs.filter((tab: MiniTab) => !expiredTabs.some((expiredTab: MiniTab) => expiredTab.url === tab.url)); 
+            chrome.storage.local.set({ tempList: tabs, expiringTabs: [] });
             const expiringTabs = tabs.filter((tab: MiniTab) => tab.expiration && new Date(tab.expiration).getTime() < (Date.now() + 60 * 1000));
+            console.log('expiringTabs', expiringTabs);
             if (expiringTabs.length > 0) {
                 chrome.action.openPopup(() => {
                     if (chrome.runtime.lastError) {
                         console.error('Failed to open popup:', chrome.runtime.lastError);
                     } else {
                         console.log('Popup opened successfully.');
+                        chrome.storage.local.set({ expiringTabs })
                         chrome.runtime.sendMessage({
                             type: 'EXPIRING_TABS',
                             tabs: expiringTabs
