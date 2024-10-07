@@ -32,13 +32,11 @@ export default defineManifest({
     48: 'icon48.png',
     128: 'icon128.png',
   },
-  permissions: ['alarms', 'activeTab', 'storage', 'tabs'],
+  permissions: ['alarms', 'activeTab', 'storage', 'tabs', 'notifications'],
   host_permissions: ['<all_urls>'] ,
   content_scripts: [
     {
-      js: isDev
-        ? ['src/content/index.dev.tsx']
-        : ['src/content/index.prod.tsx'],
+      js: ['src/content/index.prod.tsx'],
       matches: ['<all_urls>'],
     },
   ],

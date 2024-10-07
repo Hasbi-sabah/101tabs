@@ -8,10 +8,7 @@
 import React, { JSX } from 'react';
 
 export default function Content(): JSX.Element {
-  console.log("i'm in content")
   return (
-    <div id='my-ext' className='container fixed z-1000 top-0 w-[100%]' data-theme='light'>
-      HOLLA SOY DORA
-    </div>
+    <div></div>
   );
 }

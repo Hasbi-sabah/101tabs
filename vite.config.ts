@@ -8,7 +8,7 @@ import tsconfigPaths from 'vite-tsconfig-paths';
 import tailwindcss from 'tailwindcss' 
 import autoprefixer from 'autoprefixer'
 
-import manifest from '../extension/real-ext/src/manifest';
+import manifest from './src/manifest';
 
 const viteManifestHackIssue846: Plugin & {
   renderCrxManifest: (manifest: any, bundle: any) => void;

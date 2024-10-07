@@ -1,9 +1,9 @@
 import React from 'react';
 import styles from '@assets/styles/index.css?inline';
 import createShadowRoot from '../utils/createShadowRoot';
-
+import { Toaster } from "../components/ui/toaster"
 import Content from './Content';
 
 const root = createShadowRoot(styles);
 
-root.render(<Content />);
+root.render(<><Content /> <Toaster /></>);
