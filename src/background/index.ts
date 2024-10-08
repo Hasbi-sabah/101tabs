@@ -58,8 +58,36 @@ chrome.runtime.onInstalled.addListener(() => {
         periodInMinutes: 1
         // periodInMinutes: 24 * 60
     });
+    chrome.contextMenus.create({
+        id: "save-tab",
+        title: "Save this tab",
+        contexts: ["page"]
+    });   
+    chrome.contextMenus.create({
+        id: "save-window",
+        title: "Save tabs of this window",
+        contexts: ["page"]
+    });    
+    chrome.contextMenus.create({
+        id: "save-all",
+        title: "Save tabs of all windows",
+        contexts: ["page"]
+    });
 });
-
+chrome.contextMenus.onClicked.addListener((info) => {
+    let queryParams = {}
+    if (info.menuItemId === 'save-window') queryParams = { currentWindow: true };
+    else if (info.menuItemId === 'save-tab') queryParams = { active: true, currentWindow: true };
+    chrome.tabs.query(queryParams, (tabs) => {
+        const tabInfos: MiniTab[] = tabs.map(tab => ({
+            title: tab.title!,
+            url: tab.url!,
+            icon: tab.favIconUrl || getIconForUrl(tab.url),
+            expiration: Date.now() + 3 * 24 * 60 * 60 * 1000
+        }));
+        addToTempList(tabInfos);
+    })
+});
 chrome.runtime.onMessage.addListener((message, _, sendResponse) => {
     if (message.type === 'REQUEST_TABS_INFO') {
         chrome.storage.local.get({ tempList: [] }, (result) => {
@@ -78,14 +106,30 @@ chrome.runtime.onMessage.addListener((message, _, sendResponse) => {
             }));
             addToTempList(tabInfos, sendResponse);
             // chrome.storage.local.get({ tempList: [] }, (result) => {
-                // chrome.storage.local.set({ tempList: [...result.tempList, ...tabInfos] }, () => {
-                //     sendResponse({ status: 'success', newTempList: [...result.tempList, ...tabInfos] });
-                // });
+            // chrome.storage.local.set({ tempList: [...result.tempList, ...tabInfos] }, () => {
+            //     sendResponse({ status: 'success', newTempList: [...result.tempList, ...tabInfos] });
+            // });
             // })
         })
     } else if (message.type === 'REQUEST_IF_MULTIPLE_WINDOWS') {
         chrome.windows.getAll({ populate: true }, (windows) => {
             sendResponse({ multipleWindows: windows.length > 1 });
+        });
+    } else if (message.type === 'OPEN_TAB') {
+        chrome.tabs.query({ url: message.url }, (tabs) => {
+            if (tabs.length > 0) {
+                const tab = tabs[0];
+                if (tab.id !== undefined && tab.windowId !== undefined) {
+                    chrome.tabs.update(tab.id, { active: true }, () => {
+                        chrome.windows.update(tab.windowId, { focused: true });
+                    });
+                    sendResponse({ found: true });
+                } else {
+                    sendResponse({ found: false });
+                }
+            } else {
+                sendResponse({ found: false });
+            }
         });
     }
     return true;
@@ -104,9 +148,12 @@ chrome.tabs.onCreated.addListener((tab) => {
             });
             if (leastVisitedTab.id !== undefined) {
                 chrome.tabs.remove(leastVisitedTab.id);
+                if (leastVisitedTab.title === undefined || leastVisitedTab.url === undefined) {
+                    return
+                }
                 const removedTabInfo = {
-                    title: leastVisitedTab.title || 'No title',
-                    url: leastVisitedTab.url || '',
+                    title: leastVisitedTab.title,
+                    url: leastVisitedTab.url,
                     icon: leastVisitedTab.favIconUrl || getIconForUrl(leastVisitedTab.url),
                     expiration: Date.now() + 2 * 60 * 1000
                 }
@@ -139,7 +186,6 @@ chrome.alarms.onAlarm.addListener((alarm) => {
             // chrome.storage.local.set({ expiringTabs: [] });
             chrome.storage.local.set({ tempList: tabs, expiringTabs: [] });
             const expiringTabs = tabs.filter((tab: MiniTab) => tab.expiration && new Date(tab.expiration).getTime() < (Date.now() + 60 * 1000));
-            console.log('expiringTabs', expiringTabs);
             if (expiringTabs.length > 0) {
                 chrome.action.openPopup(() => {
                     if (chrome.runtime.lastError) {

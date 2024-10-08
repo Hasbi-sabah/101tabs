@@ -8,11 +8,16 @@ const MAX_TITLE_LENGTH = 30
 export default function MainPopUp({ tabs, expiringTabs }: { tabs: MiniTab[], expiringTabs: MiniTab[] }): JSX.Element {
     const [hoveredIndex, setHoveredIndex] = useState<number | null>(null)
     const handleLinkClick = (url: string) => {
-        if (url.startsWith('chrome://')) {
-            chrome.tabs.create({ url });
-        } else {
-            window.open(url, '_blank', 'noopener,noreferrer');
-        }
+        chrome.runtime.sendMessage({ type: 'OPEN_TAB', url }, response => {
+            if (!response.found) {
+                if (url.startsWith('chrome://')) {
+                    chrome.tabs.create({ url });
+                } else {
+                    window.open(url, '_blank', 'noopener,noreferrer');
+                }
+            }
+        });
+
     };
     const getExpirationMessage = (expirationTimestamp: number) => {
         const expirationDate = new Date(expirationTimestamp);
@@ -31,7 +36,7 @@ export default function MainPopUp({ tabs, expiringTabs }: { tabs: MiniTab[], exp
                 {tabs.map((tab, index) => (
                     <li
                         key={index}
-                        className="border rounded-lg overflow-hidden transition-all duration-300 ease-in-out"
+                        className="border cursor-pointer rounded-lg overflow-hidden transition-all duration-300 ease-in-out"
                         onMouseEnter={() => setHoveredIndex(index)}
                         onMouseLeave={() => setHoveredIndex(null)}
                         onClick={() => handleLinkClick(tab.url)}
@@ -59,7 +64,7 @@ export default function MainPopUp({ tabs, expiringTabs }: { tabs: MiniTab[], exp
                                             <div className="space-y-1">
                                                 <h4 className="text-sm font-semibold">Expiration Date</h4>
                                                 <p className="text-sm">
-                                                {getExpirationMessage(tab.expiration)}                                             </p>
+                                                    {getExpirationMessage(tab.expiration)}                                             </p>
                                             </div>
                                         </div>
                                     </HoverCardContent>

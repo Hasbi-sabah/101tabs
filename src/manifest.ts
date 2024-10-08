@@ -32,7 +32,7 @@ export default defineManifest({
     48: 'icon48.png',
     128: 'icon128.png',
   },
-  permissions: ['alarms', 'activeTab', 'storage', 'tabs', 'notifications'],
+  permissions: ['alarms', 'activeTab', 'storage', 'tabs', 'notifications', 'contextMenus'],
   host_permissions: ['<all_urls>'] ,
   content_scripts: [
     {
