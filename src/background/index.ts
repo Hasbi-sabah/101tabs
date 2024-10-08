@@ -45,11 +45,6 @@ function addToTempList(tabs: MiniTab[], callback?: (response: any) => void) {
         );
     });
 }
-// function getTimeUntilNextDay() {
-//     const now = new Date();
-//     const nextDay = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
-//     return nextDay.getTime() - now.getTime();
-// }
 
 chrome.runtime.onInstalled.addListener(() => {
     chrome.storage.local.set({ expiringTabs: [], tempList: [], tabLimit: 7, expirationDays: 3 * 24 * 60 * 60 * 1000 })
@@ -62,12 +57,12 @@ chrome.runtime.onInstalled.addListener(() => {
         id: "save-tab",
         title: "Save this tab",
         contexts: ["page"]
-    });   
+    });
     chrome.contextMenus.create({
         id: "save-window",
         title: "Save tabs of this window",
         contexts: ["page"]
-    });    
+    });
     chrome.contextMenus.create({
         id: "save-all",
         title: "Save tabs of all windows",
@@ -83,7 +78,7 @@ chrome.contextMenus.onClicked.addListener((info) => {
             title: tab.title!,
             url: tab.url!,
             icon: tab.favIconUrl || getIconForUrl(tab.url),
-            expiration: Date.now() + 3 * 24 * 60 * 60 * 1000
+            expiration: Date.now() + 2 * 60 * 1000
         }));
         addToTempList(tabInfos);
     })
@@ -92,6 +87,10 @@ chrome.runtime.onMessage.addListener((message, _, sendResponse) => {
     if (message.type === 'REQUEST_TABS_INFO') {
         chrome.storage.local.get({ tempList: [] }, (result) => {
             sendResponse({ type: 'TABS_INFO', tabs: result.tempList || [] });
+        });
+    } else if (message.type === 'REQUEST_EXPIRING_TABS_INFO') {
+        chrome.storage.local.get({ expiringTabs: [] }, (result) => {
+            sendResponse({ type: 'TABS_INFO', expiringTabs: result.expiringTabs || [] });
         });
     } else if (message.type === 'REQUEST_SAVE_TABS') {
         let queryParams = {}
@@ -102,14 +101,9 @@ chrome.runtime.onMessage.addListener((message, _, sendResponse) => {
                 title: tab.title!,
                 url: tab.url!,
                 icon: tab.favIconUrl || getIconForUrl(tab.url),
-                expiration: Date.now() + 3 * 24 * 60 * 60 * 1000
+                expiration: Date.now() + 2 * 60 * 1000
             }));
             addToTempList(tabInfos, sendResponse);
-            // chrome.storage.local.get({ tempList: [] }, (result) => {
-            // chrome.storage.local.set({ tempList: [...result.tempList, ...tabInfos] }, () => {
-            //     sendResponse({ status: 'success', newTempList: [...result.tempList, ...tabInfos] });
-            // });
-            // })
         })
     } else if (message.type === 'REQUEST_IF_MULTIPLE_WINDOWS') {
         chrome.windows.getAll({ populate: true }, (windows) => {
@@ -130,6 +124,23 @@ chrome.runtime.onMessage.addListener((message, _, sendResponse) => {
             } else {
                 sendResponse({ found: false });
             }
+        });
+    } else if (message.type === 'DISMISS_EXPIRING_TAB') {
+        chrome.storage.local.get({ expiringTabs: [], tempList: [] }, result => {
+            const updatedExpiringTabs = result.expiringTabs.filter((tab: MiniTab) => tab.url !== message.url);
+            const updatedTemplist = result.tempList.filter((tab: MiniTab) => tab.url !== message.url);
+
+            chrome.storage.local.set({ expiringTabs: updatedExpiringTabs, tempList: updatedTemplist }, () => {
+                sendResponse({ expiringTabs: updatedExpiringTabs, tempList: updatedTemplist });
+            });
+        });
+    } else if (message.type === 'DISMISS_ALL_EXPIRING') {
+        chrome.storage.local.get({ expiringTabs: [], tempList: [] }, result => {
+            const expiringTabUrls = result.expiringTabs.map((tab: MiniTab) => tab.url);
+            const updatedTemplist = result.tempList.filter((tab: MiniTab) => !expiringTabUrls.includes(tab.url));    
+            chrome.storage.local.set({ expiringTabs: [], tempList: updatedTemplist }, () => {
+                sendResponse({ tempList: updatedTemplist });
+            });
         });
     }
     return true;

@@ -4,9 +4,11 @@ import MainPopUp from '../components/mainPopUp';
 import Options from '../components/options';
 import { MiniTab } from '../utils/types.s';
 import Dialog from '../components/dialog';
+import Header from '../components/header';
+import ExpiringTabs from '../components/expiringTabs';
 
 export default function Popup(): JSX.Element {
-  const [current, setCurrent] = useState<string>("main");
+  const [current, setCurrent] = useState<'dialog' | 'main' | 'options' | 'expiring'>("main");
   const [tabs, setTabs] = useState<MiniTab[]>([]);
   const [expiringTabs, setExpiringTabs] = useState<MiniTab[]>([]);
   const [multipleWindows, setMultipleWindows] = useState<boolean>(false);
@@ -30,41 +32,24 @@ export default function Popup(): JSX.Element {
     return () => chrome.runtime.onMessage.removeListener(handleMessage);
   }, []);
 
-  
-  const handleSaveAll = () => {
-    chrome.runtime.sendMessage({ type: 'REQUEST_SAVE_TABS', action: 'saveAll' }, response => {
+
+  const handleSave = (action: string) => {
+    chrome.runtime.sendMessage({ type: 'REQUEST_SAVE_TABS', action }, response => {
       if (response.status === 'success') {
         setTabs(response.newTempList);
-      }
-    })
-  }  
-  const handleSaveWindow = () => {
-    chrome.runtime.sendMessage({ type: 'REQUEST_SAVE_TABS', action: 'saveWindow' }, response => {
-      if (response.status === 'success') {
-        setTabs(response.newTempList);
-      }
-    })
-  }
-  const handleSaveTab = () => {
-    chrome.runtime.sendMessage({ type: 'REQUEST_SAVE_TABS', action: 'saveTab' }, response => {
-      if (response.status === 'success') {
-        setTabs(response.newTempList);
+        setCurrent('main')
       }
     })
   }
   if (current === 'dialog') {
-    return <Dialog handleReview={() => { }} expiringTabsLength={expiringTabs.length} />;
+    return <Dialog handleReview={() => setCurrent('expiring')} expiringTabsLength={expiringTabs.length} />;
   }
   return (
     <div>
-      <Button onClick={() => setCurrent('main')} >main</Button>
-      <Button onClick={() => setCurrent('options')}>options</Button>
-      <div>
-        {multipleWindows && (<Button onClick={handleSaveAll}>save all</Button>)}
-        <Button onClick={handleSaveWindow}>save window</Button>
-        <Button onClick={handleSaveTab}>save tab</Button>
-      </div>
-      {current === 'main' ? <MainPopUp tabs={tabs} expiringTabs={expiringTabs} /> : <Options handleCancel={() => setCurrent('main')} />}
+      <Header multipleWindows={multipleWindows} setCurrent={setCurrent} handleSave={handleSave} />
+      {current === 'main' && <MainPopUp tabs={tabs} expiringTabs={expiringTabs} />}
+      {current === 'options' && <Options handleCancel={() => setCurrent('main')} />}
+      {current === 'expiring' && <ExpiringTabs setTabs={setTabs}/>}
     </div>
   )
 }
