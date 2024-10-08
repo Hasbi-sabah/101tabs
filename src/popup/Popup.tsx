@@ -9,6 +9,7 @@ export default function Popup(): JSX.Element {
   const [current, setCurrent] = useState<string>("main");
   const [tabs, setTabs] = useState<MiniTab[]>([]);
   const [expiringTabs, setExpiringTabs] = useState<MiniTab[]>([]);
+  const [multipleWindows, setMultipleWindows] = useState<boolean>(false);
 
   useEffect(() => {
     chrome.runtime.sendMessage({ type: 'REQUEST_TABS_INFO' }, response => {
@@ -19,23 +20,51 @@ export default function Popup(): JSX.Element {
         setTabs(response.tabs);
       }
     });
+    chrome.runtime.sendMessage({ type: 'REQUEST_IF_MULTIPLE_WINDOWS' }, response => {
+      setMultipleWindows(response.multipleWindows);
+    })
     const handleMessage = (message: any) => {
-      if (message.type === 'EXPIRING_TABS') {setExpiringTabs(message.tabs); setCurrent('dialog');}
+      if (message.type === 'EXPIRING_TABS') { setExpiringTabs(message.tabs); setCurrent('dialog'); }
     };
     chrome.runtime.onMessage.addListener(handleMessage);
-    return () => chrome.runtime.onMessage.removeListener(handleMessage);    
+    return () => chrome.runtime.onMessage.removeListener(handleMessage);
   }, []);
-  const handleCancel = () => {
-    setCurrent('main');     
+
+  
+  const handleSaveAll = () => {
+    chrome.runtime.sendMessage({ type: 'REQUEST_SAVE_TABS', action: 'saveAll' }, response => {
+      if (response.status === 'success') {
+        setTabs(response.newTempList);
+      }
+    })
+  }  
+  const handleSaveWindow = () => {
+    chrome.runtime.sendMessage({ type: 'REQUEST_SAVE_TABS', action: 'saveWindow' }, response => {
+      if (response.status === 'success') {
+        setTabs(response.newTempList);
+      }
+    })
+  }
+  const handleSaveTab = () => {
+    chrome.runtime.sendMessage({ type: 'REQUEST_SAVE_TABS', action: 'saveTab' }, response => {
+      if (response.status === 'success') {
+        setTabs(response.newTempList);
+      }
+    })
   }
   if (current === 'dialog') {
-    return <Dialog handleReview={() => {}} expiringTabsLength={expiringTabs.length} />;
-  } 
+    return <Dialog handleReview={() => { }} expiringTabsLength={expiringTabs.length} />;
+  }
   return (
     <div>
       <Button onClick={() => setCurrent('main')} >main</Button>
       <Button onClick={() => setCurrent('options')}>options</Button>
-      {current === 'main' ? <MainPopUp tabs={tabs} expiringTabs={expiringTabs} /> : <Options handleCancel={handleCancel}/>}
+      <div>
+        {multipleWindows && (<Button onClick={handleSaveAll}>save all</Button>)}
+        <Button onClick={handleSaveWindow}>save window</Button>
+        <Button onClick={handleSaveTab}>save tab</Button>
+      </div>
+      {current === 'main' ? <MainPopUp tabs={tabs} expiringTabs={expiringTabs} /> : <Options handleCancel={() => setCurrent('main')} />}
     </div>
   )
 }

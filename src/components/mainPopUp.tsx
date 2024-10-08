@@ -2,6 +2,7 @@ import React, { JSX, useState } from 'react';
 import { MiniTab } from '../utils/types.s';
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "../components/ui/hover-card"
 import { CalendarIcon } from 'lucide-react';
+import humanizeDuration from 'humanize-duration';
 
 const MAX_TITLE_LENGTH = 30
 export default function MainPopUp({ tabs, expiringTabs }: { tabs: MiniTab[], expiringTabs: MiniTab[] }): JSX.Element {
@@ -12,6 +13,13 @@ export default function MainPopUp({ tabs, expiringTabs }: { tabs: MiniTab[], exp
         } else {
             window.open(url, '_blank', 'noopener,noreferrer');
         }
+    };
+    const getExpirationMessage = (expirationTimestamp: number) => {
+        const expirationDate = new Date(expirationTimestamp);
+        const now = Date.now();
+        const duration = expirationDate.getTime() - now;
+        const humanizedDuration = humanizeDuration(duration, { largest: 1, round: true });
+        return `This tab will expire in ${humanizedDuration}`;
     };
     return (
         <div className="container p-4 max-w-2xl mx-auto">
@@ -51,8 +59,7 @@ export default function MainPopUp({ tabs, expiringTabs }: { tabs: MiniTab[], exp
                                             <div className="space-y-1">
                                                 <h4 className="text-sm font-semibold">Expiration Date</h4>
                                                 <p className="text-sm">
-                                                    This tab will expire on: {new Date(tab.expiration).toLocaleString()}
-                                                </p>
+                                                {getExpirationMessage(tab.expiration)}                                             </p>
                                             </div>
                                         </div>
                                     </HoverCardContent>

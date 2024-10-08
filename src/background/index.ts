@@ -21,6 +21,30 @@ function getIconForUrl(url: string | undefined): string {
     }
     return '/fallback.png';
 }
+function addToTempList(tabs: MiniTab[], callback?: (response: any) => void) {
+    chrome.storage.local.get({ tempList: [] }, (result) => {
+        const existingTabs: MiniTab[] = result.tempList;
+        const tabMap = new Map(existingTabs.map(tab => [tab.url, tab]));
+        tabs.forEach(newTab => {
+            if (newTab.url === 'chrome://newtab/') {
+                return;
+            }
+            if (tabMap.has(newTab.url)) {
+                const existingTab = tabMap.get(newTab.url)!;
+                existingTab.expiration = Date.now() + 2 * 60 * 1000;
+            } else {
+                tabMap.set(newTab.url, newTab);
+            }
+        });
+        const updatedTempList = Array.from(tabMap.values());
+        chrome.storage.local.set({ tempList: updatedTempList }, () => {
+            if (callback) {
+                callback({ status: 'success', newTempList: updatedTempList });
+            }
+        }
+        );
+    });
+}
 // function getTimeUntilNextDay() {
 //     const now = new Date();
 //     const nextDay = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
@@ -39,11 +63,32 @@ chrome.runtime.onInstalled.addListener(() => {
 chrome.runtime.onMessage.addListener((message, _, sendResponse) => {
     if (message.type === 'REQUEST_TABS_INFO') {
         chrome.storage.local.get({ tempList: [] }, (result) => {
-            console.log(result)
             sendResponse({ type: 'TABS_INFO', tabs: result.tempList || [] });
         });
-        return true;
+    } else if (message.type === 'REQUEST_SAVE_TABS') {
+        let queryParams = {}
+        if (message.action === 'saveWindow') queryParams = { currentWindow: true };
+        else if (message.action === 'saveTab') queryParams = { active: true, currentWindow: true };
+        chrome.tabs.query(queryParams, (tabs) => {
+            const tabInfos: MiniTab[] = tabs.map(tab => ({
+                title: tab.title!,
+                url: tab.url!,
+                icon: tab.favIconUrl || getIconForUrl(tab.url),
+                expiration: Date.now() + 3 * 24 * 60 * 60 * 1000
+            }));
+            addToTempList(tabInfos, sendResponse);
+            // chrome.storage.local.get({ tempList: [] }, (result) => {
+                // chrome.storage.local.set({ tempList: [...result.tempList, ...tabInfos] }, () => {
+                //     sendResponse({ status: 'success', newTempList: [...result.tempList, ...tabInfos] });
+                // });
+            // })
+        })
+    } else if (message.type === 'REQUEST_IF_MULTIPLE_WINDOWS') {
+        chrome.windows.getAll({ populate: true }, (windows) => {
+            sendResponse({ multipleWindows: windows.length > 1 });
+        });
     }
+    return true;
 });
 
 chrome.tabs.onCreated.addListener((tab) => {
@@ -59,27 +104,25 @@ chrome.tabs.onCreated.addListener((tab) => {
             });
             if (leastVisitedTab.id !== undefined) {
                 chrome.tabs.remove(leastVisitedTab.id);
-                if (leastVisitedTab.url === 'chrome://newtab/') {
-                    return;
-                }
                 const removedTabInfo = {
                     title: leastVisitedTab.title || 'No title',
                     url: leastVisitedTab.url || '',
                     icon: leastVisitedTab.favIconUrl || getIconForUrl(leastVisitedTab.url),
                     expiration: Date.now() + 2 * 60 * 1000
                 }
-                chrome.storage.local.get({ tempList: [] }, (result) => {
-                    console.log(result)
-                    const removedTabs = result.tempList || [];
-                    const existingTabIndex = removedTabs.findIndex((tab: MiniTab) => tab.url === removedTabInfo.url);
+                addToTempList([removedTabInfo]);
+                // chrome.storage.local.get({ tempList: [] }, (result) => {
+                //     console.log(result)
+                //     const removedTabs = result.tempList || [];
+                //     const existingTabIndex = removedTabs.findIndex((tab: MiniTab) => tab.url === removedTabInfo.url);
 
-                    if (existingTabIndex !== -1) {
-                        removedTabs[existingTabIndex] = removedTabInfo;
-                    } else {
-                        removedTabs.push(removedTabInfo);
-                    }
-                    chrome.storage.local.set({ tempList: removedTabs });
-                });
+                //     if (existingTabIndex !== -1) {
+                //         removedTabs[existingTabIndex] = removedTabInfo;
+                //     } else {
+                //         removedTabs.push(removedTabInfo);
+                //     }
+                //     chrome.storage.local.set({ tempList: removedTabs });
+                // });
             }
         }
     });
@@ -91,7 +134,9 @@ chrome.alarms.onAlarm.addListener((alarm) => {
         chrome.storage.local.get({ tempList: [] }, async (result) => {
             const { expiringTabs: expiredTabs } = await chrome.storage.local.get({ expiringTabs: [] });
             let tabs = result.tempList || [];
-            tabs = tabs.filter((tab: MiniTab) => !expiredTabs.some((expiredTab: MiniTab) => expiredTab.url === tab.url)); 
+            tabs = tabs.filter((tab: MiniTab) => !expiredTabs.some((expiredTab: MiniTab) => expiredTab.url === tab.url));
+            // addToTempList(tabs);
+            // chrome.storage.local.set({ expiringTabs: [] });
             chrome.storage.local.set({ tempList: tabs, expiringTabs: [] });
             const expiringTabs = tabs.filter((tab: MiniTab) => tab.expiration && new Date(tab.expiration).getTime() < (Date.now() + 60 * 1000));
             console.log('expiringTabs', expiringTabs);

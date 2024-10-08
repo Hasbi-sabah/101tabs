@@ -25,7 +25,7 @@ export interface MiniTab {
     title: string;
     url: string;
     icon: string;
-    expiration: Date;
+    expiration: number;
 }
 
 export interface WindowInfo {
