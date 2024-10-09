@@ -137,7 +137,7 @@ chrome.runtime.onMessage.addListener((message, _, sendResponse) => {
     } else if (message.type === 'DISMISS_ALL_EXPIRING') {
         chrome.storage.local.get({ expiringTabs: [], tempList: [] }, result => {
             const expiringTabUrls = result.expiringTabs.map((tab: MiniTab) => tab.url);
-            const updatedTemplist = result.tempList.filter((tab: MiniTab) => !expiringTabUrls.includes(tab.url));    
+            const updatedTemplist = result.tempList.filter((tab: MiniTab) => !expiringTabUrls.includes(tab.url));
             chrome.storage.local.set({ expiringTabs: [], tempList: updatedTemplist }, () => {
                 sendResponse({ tempList: updatedTemplist });
             });
@@ -162,25 +162,13 @@ chrome.tabs.onCreated.addListener((tab) => {
                 if (leastVisitedTab.title === undefined || leastVisitedTab.url === undefined) {
                     return
                 }
-                const removedTabInfo = {
+                const removedTabInfo: MiniTab = {
                     title: leastVisitedTab.title,
                     url: leastVisitedTab.url,
                     icon: leastVisitedTab.favIconUrl || getIconForUrl(leastVisitedTab.url),
-                    expiration: Date.now() + 2 * 60 * 1000
+                    expiration: Date.now() + 2 * 60 * 1000,
                 }
                 addToTempList([removedTabInfo]);
-                // chrome.storage.local.get({ tempList: [] }, (result) => {
-                //     console.log(result)
-                //     const removedTabs = result.tempList || [];
-                //     const existingTabIndex = removedTabs.findIndex((tab: MiniTab) => tab.url === removedTabInfo.url);
-
-                //     if (existingTabIndex !== -1) {
-                //         removedTabs[existingTabIndex] = removedTabInfo;
-                //     } else {
-                //         removedTabs.push(removedTabInfo);
-                //     }
-                //     chrome.storage.local.set({ tempList: removedTabs });
-                // });
             }
         }
     });

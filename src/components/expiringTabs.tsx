@@ -89,9 +89,10 @@ export default function ExpiringTabs({ setTabs }: { setTabs: (tabs: MiniTab[]) =
                     )}
                 </div>
             </CardContent>
-            <CardFooter className="flex justify-between">
-                <Button onClick={handleDismissAll} variant="outline">Dismiss All</Button>
-            </CardFooter>
+            {expTabs.length > 0 && (
+                <CardFooter className="flex justify-between">
+                    <Button onClick={handleDismissAll} variant="outline">Dismiss All</Button>
+                </CardFooter>)}
         </Card>
     )
 }

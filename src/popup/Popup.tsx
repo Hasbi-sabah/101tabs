@@ -46,7 +46,7 @@ export default function Popup(): JSX.Element {
   }
   return (
     <div>
-      <Header multipleWindows={multipleWindows} setCurrent={setCurrent} handleSave={handleSave} />
+      <Header multipleWindows={multipleWindows} current={current} setCurrent={setCurrent} handleSave={handleSave} />
       {current === 'main' && <MainPopUp tabs={tabs} expiringTabs={expiringTabs} />}
       {current === 'options' && <Options handleCancel={() => setCurrent('main')} />}
       {current === 'expiring' && <ExpiringTabs setTabs={setTabs}/>}

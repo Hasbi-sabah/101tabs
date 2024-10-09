@@ -4,9 +4,10 @@ import { Label } from "../components/ui/label"
 import { Button } from "../components/ui/button"
 import { Slider } from "../components/ui/slider"
 
-export default function Options({ handleCancel }: { handleCancel: () => void }) {
+export default function Options({ handleCancel }: { handleCancel: (value: 'dialog' | 'main' | 'options' | 'expiring') => void; }) {
     const [tabLimit, setTabLimit] = useState(7)
     const [expirationDays, setExpirationDays] = useState(3)
+    const [save, setSave] = useState<string>('Save Changes')
 
     useEffect(() => {
         chrome.storage.local.get(['tabLimit', 'expirationDays'], (result) => {
@@ -17,7 +18,9 @@ export default function Options({ handleCancel }: { handleCancel: () => void }) 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault()
         chrome.storage.local.set({ tabLimit, expirationDays: expirationDays * 24 * 60 * 60 * 1000 })
-        console.log('Saving options:', { tabLimit, expirationDays })
+        setSave('Saved')
+        setTimeout(() => { handleCancel('main') }, 1000)
+
     }
     return (
         <Card className="w-[350px] border-none shadow-none">
@@ -60,8 +63,10 @@ export default function Options({ handleCancel }: { handleCancel: () => void }) 
                 </form>
             </CardContent>
             <CardFooter className="flex justify-between">
-                <Button onClick={handleCancel} variant="outline">Cancel</Button>
-                <Button onClick={handleSubmit}>Save Changes</Button>
+                <Button onClick={() => handleCancel('main')} variant="outline">Cancel</Button>
+                <Button onClick={handleSubmit} variant={save === 'Saved' ? 'destructive' : undefined}>
+                    {save}
+                </Button>
             </CardFooter>
         </Card>
     )
