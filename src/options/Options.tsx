@@ -1,80 +1,247 @@
-import React, { useState } from 'react'
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "../components/ui/card"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select"
-import { Input } from "../components/ui/input"
-import { Label } from "../components/ui/label"
-import { Button } from "../components/ui/button"
-import { Slider } from "../components/ui/slider"
+import React, { useEffect, useState } from 'react';
+import {
+  AlertTriangle,
+  CheckCircle,
+  Clock,
+  Download,
+  Upload,
+  Trash2,
+} from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '../components/ui/alert-dialog';
+import { Button } from '../components/ui/button';
+// import {
+//   Card,
+//   CardContent,
+//   CardDescription,
+//   CardFooter,
+//   CardHeader,
+//   CardTitle,
+// } from '../components/ui/card';
+import { Label } from '../components/ui/label';
+import { Slider } from '../components/ui/slider';
+import { toast } from '../hooks/use-toast';
+import { defaultMode } from '../background/index';
 
 export default function Options() {
-  const [tabLimit, setTabLimit] = useState(20)
-  const [expirationDays, setExpirationDays] = useState('7')
-  const [notifWindow, setNotifWindow] = useState(1)
+  const [julienMode, setJulienMode] = useState(false);
+  const [tabLimit, setTabLimit] = useState(7);
+  const [expirationDays, setExpirationDays] = useState(3);
+  const [save, setSave] = useState<string>('Save Changes');
+
+  useEffect(() => {
+    chrome.storage.local.get(['tabLimit', 'expirationDays'], (result) => {
+      setTabLimit(result.tabLimit || 7);
+      setExpirationDays(result.expirationDays / (24 * 60 * 60 * 1000) || 3);
+      setJulienMode(result.tabLimit === 3);
+    });
+  }, []);
 
   const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    // Here you would typically save these values to Chrome's storage
-    console.log('Saving options:', { tabLimit, expirationDays, notifWindow })
-  }
+    e.preventDefault();
+    chrome.storage.local.set({
+      tabLimit,
+      expirationDays: expirationDays * 24 * 60 * 60 * 1000,
+    });
+    setSave('Saved');
+    toast({
+      title: 'Settings saved',
+      description: 'Your changes have been successfully saved.',
+    });
+    setTimeout(() => {
+      setSave('Save Changes');
+    }, 2000);
+  };
 
+  const handleExport = () => {
+    chrome.storage.local.get(
+      {
+        tabLimit: defaultMode.tabLimit,
+        expirationDays: defaultMode.expirationDays,
+        reminderAlarm: defaultMode.reminderAlarm,
+        tempList: [],
+        expiringTabs: [],
+      },
+      (result) => {
+        const blob = new Blob([JSON.stringify(result)], {
+          type: 'application/json',
+        });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = '101tabs-data.json';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }
+    );
+  };
+
+  const handleImport = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const data = JSON.parse(e.target?.result as string);
+          setTabLimit(data.tabLimit);
+          setExpirationDays(data.expirationDays / (24 * 60 * 60 * 1000));
+          // setJulienMode(data.julienMode);
+          chrome.storage.local.set({
+            tabLimit: data.tabLimit,
+            expirationDays: data.expirationDays,
+            reminderAlarm: data.reminderAlarm,
+            tempList: data.tempList,
+            expiringTabs: data.expiringTabs,
+          });
+          toast({
+            title: 'Settings imported',
+            description: 'Your settings have been successfully imported.',
+          });
+        } catch (error) {
+          toast({
+            title: 'Import failed',
+            description: 'There was an error importing your settings.',
+            variant: 'destructive',
+          });
+        }
+      };
+      reader.readAsText(file);
+    }
+  };
+  const handleDeleteData = () => {
+    chrome.storage.local.clear(() => {
+      setTabLimit(7);
+      setExpirationDays(3);
+      setJulienMode(false);
+      toast({
+        title: "Data deleted",
+        description: "All your data has been successfully deleted.",
+      });
+    });
+  };
   return (
-    <div id='my-ext' data-theme='light' className="container mx-auto p-4">
-      <Card className="w-[350px]">
-        <CardHeader>
-          <CardTitle>Tab Manager Options</CardTitle>
-          <CardDescription>Configure your tab management preferences</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit}>
-            <div className="grid w-full items-center gap-4">
-              <div className="flex flex-col space-y-1.5">
-                <Label htmlFor="tabLimit">Tab Limit (5-100)</Label>
-                <Slider
-                  id="tabLimit"
-                  min={5}
-                  max={100}
-                  step={1}
-                  value={[tabLimit]}
-                  onValueChange={(value) => setTabLimit(value[0])}
-                />
-                <div className="text-sm text-muted-foreground mt-1">
-                  Current value: {tabLimit}
-                </div>
+    <div className="container mx-auto py-8 px-4">
+      <h1 className="text-3xl font-bold mb-2">Tab Manager Options</h1>
+      <p className="text-lg text-muted-foreground mb-8">Configure your tab management preferences</p>
+
+      <form onSubmit={handleSubmit} className="space-y-8">
+        {julienMode ? (
+          <div className="rounded-lg bg-gradient-to-r from-purple-400 via-pink-500 to-red-500 p-1">
+            <div className="rounded-lg bg-white p-6">
+              <div className="flex items-center space-x-2">
+                <Clock className="h-8 w-8 text-purple-500" />
+                <h3 className="text-2xl font-semibold text-purple-700">Julien Mode Activated</h3>
               </div>
-              <div className="flex flex-col space-y-1.5">
-                <Label htmlFor="expirationDays">Expiration of Closed Tabs</Label>
-                <Select value={expirationDays} onValueChange={setExpirationDays}>
-                  <SelectTrigger id="expirationDays">
-                    <SelectValue placeholder="Select expiration days" />
-                  </SelectTrigger>
-                  <SelectContent position="popper">
-                    <SelectItem value="1">1 day</SelectItem>
-                    <SelectItem value="7">7 days</SelectItem>
-                    <SelectItem value="30">30 days</SelectItem>
-                    <SelectItem value="90">90 days</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="flex flex-col space-y-1.5">
-                <Label htmlFor="notifWindow">Notification Window (1-24 hours before delete)</Label>
-                <Input 
-                  id="notifWindow" 
-                  type="number" 
-                  min={1}
-                  max={24}
-                  value={notifWindow}
-                  onChange={(e) => setNotifWindow(Math.min(24, Math.max(1, parseInt(e.target.value))))}
-                  placeholder="Enter notification window" 
-                />
+              <p className="mt-4 text-lg text-gray-600">For those lacking basic time travel abilities:</p>
+              <ul className="mt-4 space-y-2 text-lg text-gray-600">
+                <li className="flex items-center">
+                  <AlertTriangle className="mr-3 h-6 w-6 text-yellow-500" />
+                  Tab Limit: 3
+                </li>
+                <li className="flex items-center">
+                  <AlertTriangle className="mr-3 h-6 w-6 text-yellow-500" />
+                  Expiration of Closed Tabs: 2 mins
+                </li>
+                <li className="flex items-center">
+                  <AlertTriangle className="mr-3 h-6 w-6 text-yellow-500" />
+                  Alarm before deletion: 1 min
+                </li>
+              </ul>
+            </div>
+          </div>
+        ) : (
+          <div className="grid md:grid-cols-2 gap-8">
+            <div className="space-y-4">
+              <Label htmlFor="tabLimit" className="text-xl font-medium">Tab Limit (5-30)</Label>
+              <Slider
+                id="tabLimit"
+                min={5}
+                max={30}
+                step={1}
+                value={[tabLimit]}
+                onValueChange={(value) => setTabLimit(value[0])}
+                className="w-full"
+              />
+              <div className="text-lg text-muted-foreground">Current value: {tabLimit} tabs</div>
+            </div>
+            <div className="space-y-4">
+              <Label htmlFor="expirationDays" className="text-xl font-medium">Expiration of Closed Tabs (1-7 days)</Label>
+              <Slider
+                id="expirationDays"
+                min={1}
+                max={7}
+                step={1}
+                value={[expirationDays]}
+                onValueChange={(value) => setExpirationDays(value[0])}
+                className="w-full"
+              />
+              <div className="text-lg text-muted-foreground">
+                Current value: {expirationDays} day{expirationDays > 1 ? 's' : ''}
               </div>
             </div>
-          </form>
-        </CardContent>
-        <CardFooter className="flex justify-between">
-          <Button variant="outline">Cancel</Button>
-          <Button onClick={handleSubmit}>Save Changes</Button>
-        </CardFooter>
-      </Card>
+          </div>
+        )}
+
+        <div className="flex justify-between items-center">
+          <div className="space-x-4">
+            <Button onClick={handleExport} variant="outline">
+              <Download className="mr-2 h-4 w-4" />
+              Export Settings
+            </Button>
+            <Button variant="outline" className="relative">
+              <input
+                type="file"
+                onChange={handleImport}
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                accept=".json"
+              />
+              <Upload className="mr-2 h-4 w-4" />
+              Import Settings
+            </Button>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive">
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Delete Data
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This action cannot be undone. This will permanently delete all your saved data and reset your settings to default.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleDeleteData}>Delete</AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
+          {!julienMode && (
+            <Button
+              onClick={handleSubmit}
+              variant={save === 'Saved' ? 'default' : 'default'}
+              className={save === 'Saved' ? 'bg-green-500 hover:bg-green-600' : ''}
+            >
+              {save === 'Saved' ? <CheckCircle className="mr-2 h-4 w-4" /> : null}
+              {save}
+            </Button>
+          )}
+        </div>
+      </form>
     </div>
   )
 }

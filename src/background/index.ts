@@ -1,5 +1,15 @@
 import { MiniTab } from "../utils/types.s";
 
+export const julienMode = {
+    tabLimit: 3,
+    expirationDays: 2 * 60 * 1000,
+    reminderAlarm: 1
+}
+export const defaultMode = {
+    tabLimit: 7,
+    expirationDays: 3 * 24 * 60 * 60 * 1000,
+    reminderAlarm: 24 * 60
+}
 const icons: { [key: string]: string } = {
     "chrome://whats-new": "/whatsnew.png",
     "chrome://extensions": "/puzzle.png",
@@ -14,14 +24,10 @@ function getIconForUrl(url: string | undefined): string {
     if (!url) {
         return '/fallback.png'
     }
-    for (const [prefix, icon] of Object.entries(icons)) {
-        if (url.startsWith(prefix)) {
-            return icon;
-        }
-    }
-    return '/fallback.png';
+    const icon = Object.entries(icons).find(([prefix]) => url.startsWith(prefix));
+    return icon ? icon[1] : '/fallback.png';
 }
-function addToTempList(tabs: MiniTab[], callback?: (response: any) => void) {
+function addToTempList(tabs: MiniTab[], callback?: (response: { status: string, newTempList: MiniTab[] }) => void) {
     chrome.storage.local.get({ tempList: [] }, (result) => {
         const existingTabs: MiniTab[] = result.tempList;
         const tabMap = new Map(existingTabs.map(tab => [tab.url, tab]));
@@ -31,7 +37,7 @@ function addToTempList(tabs: MiniTab[], callback?: (response: any) => void) {
             }
             if (tabMap.has(newTab.url)) {
                 const existingTab = tabMap.get(newTab.url)!;
-                existingTab.expiration = Date.now() + 2 * 60 * 1000;
+                existingTab.expiration = newTab.expiration;
             } else {
                 tabMap.set(newTab.url, newTab);
             }
@@ -47,11 +53,14 @@ function addToTempList(tabs: MiniTab[], callback?: (response: any) => void) {
 }
 
 chrome.runtime.onInstalled.addListener(() => {
-    chrome.storage.local.set({ expiringTabs: [], tempList: [], tabLimit: 7, expirationDays: 3 * 24 * 60 * 60 * 1000 })
-    chrome.alarms.create('dailyJob', {
+    chrome.storage.local.set({ expiringTabs: [], tempList: [], ...defaultMode, mode: 'default' })
+    chrome.alarms.create('default', {
         when: Date.now(),
-        periodInMinutes: 1
-        // periodInMinutes: 24 * 60
+        periodInMinutes: defaultMode.reminderAlarm
+    });
+    chrome.alarms.create('julien', {
+        when: Date.now(),
+        periodInMinutes: julienMode.reminderAlarm
     });
     chrome.contextMenus.create({
         id: "save-tab",
@@ -69,20 +78,24 @@ chrome.runtime.onInstalled.addListener(() => {
         contexts: ["page"]
     });
 });
+
 chrome.contextMenus.onClicked.addListener((info) => {
     let queryParams = {}
     if (info.menuItemId === 'save-window') queryParams = { currentWindow: true };
     else if (info.menuItemId === 'save-tab') queryParams = { active: true, currentWindow: true };
-    chrome.tabs.query(queryParams, (tabs) => {
-        const tabInfos: MiniTab[] = tabs.map(tab => ({
-            title: tab.title!,
-            url: tab.url!,
-            icon: tab.favIconUrl || getIconForUrl(tab.url),
-            expiration: Date.now() + 2 * 60 * 1000
-        }));
-        addToTempList(tabInfos);
+    chrome.storage.local.get({ expirationDays: defaultMode.expirationDays }, result => {
+        chrome.tabs.query(queryParams, (tabs) => {
+            const tabInfos: MiniTab[] = tabs.map(tab => ({
+                title: tab.title!,
+                url: tab.url!,
+                icon: tab.favIconUrl || getIconForUrl(tab.url),
+                expiration: Date.now() + result.expirationDays
+            }));
+            addToTempList(tabInfos);
+        })
     })
 });
+
 chrome.runtime.onMessage.addListener((message, _, sendResponse) => {
     if (message.type === 'REQUEST_TABS_INFO') {
         chrome.storage.local.get({ tempList: [] }, (result) => {
@@ -96,14 +109,16 @@ chrome.runtime.onMessage.addListener((message, _, sendResponse) => {
         let queryParams = {}
         if (message.action === 'saveWindow') queryParams = { currentWindow: true };
         else if (message.action === 'saveTab') queryParams = { active: true, currentWindow: true };
-        chrome.tabs.query(queryParams, (tabs) => {
-            const tabInfos: MiniTab[] = tabs.map(tab => ({
-                title: tab.title!,
-                url: tab.url!,
-                icon: tab.favIconUrl || getIconForUrl(tab.url),
-                expiration: Date.now() + 2 * 60 * 1000
-            }));
-            addToTempList(tabInfos, sendResponse);
+        chrome.storage.local.get({ expirationDays: defaultMode.expirationDays }, result => {
+            chrome.tabs.query(queryParams, (tabs) => {
+                const tabInfos: MiniTab[] = tabs.map(tab => ({
+                    title: tab.title!,
+                    url: tab.url!,
+                    icon: tab.favIconUrl || getIconForUrl(tab.url),
+                    expiration: Date.now() + result.expirationDays
+                }));
+                addToTempList(tabInfos, sendResponse);
+            })
         })
     } else if (message.type === 'REQUEST_IF_MULTIPLE_WINDOWS') {
         chrome.windows.getAll({ populate: true }, (windows) => {
@@ -136,20 +151,24 @@ chrome.runtime.onMessage.addListener((message, _, sendResponse) => {
         });
     } else if (message.type === 'DISMISS_ALL_EXPIRING') {
         chrome.storage.local.get({ expiringTabs: [], tempList: [] }, result => {
-            const expiringTabUrls = result.expiringTabs.map((tab: MiniTab) => tab.url);
-            const updatedTemplist = result.tempList.filter((tab: MiniTab) => !expiringTabUrls.includes(tab.url));
+            const expiringTabUrls = (result.expiringTabs).map((tab: MiniTab) => tab.url);
+            const updatedTemplist = (result.tempList).filter((tab: MiniTab) => !expiringTabUrls.includes(tab.url));
             chrome.storage.local.set({ expiringTabs: [], tempList: updatedTemplist }, () => {
                 sendResponse({ tempList: updatedTemplist });
             });
-        });
+        })
+    } else if (message.type === 'TOGGLE_JULIEN_MODE') {
+        const data = message.julienMode ? { ...defaultMode, mode: 'default' } : { ...julienMode, mode: 'julien' }
+        if (message.julienMode) chrome.storage.local.set({ ...data })
+        else chrome.storage.local.set({ ...data })
+        sendResponse({ ...data })
     }
     return true;
 });
 
 chrome.tabs.onCreated.addListener((tab) => {
     chrome.tabs.query({ windowId: tab.windowId }, async (tabs) => {
-        // const { tabLimit, expirationDate } = await chrome.storage.local.get(["tabLimit", "expirationDays"]);
-        const { tabLimit } = await chrome.storage.local.get(["tabLimit", "expirationDays"]);
+        const { tabLimit, expirationDays } = await chrome.storage.local.get(["tabLimit", "expirationDays"]);
         if (tabs.length > tabLimit) {
             let leastVisitedTab = tabs[0];
             tabs.forEach((t) => {
@@ -166,7 +185,7 @@ chrome.tabs.onCreated.addListener((tab) => {
                     title: leastVisitedTab.title,
                     url: leastVisitedTab.url,
                     icon: leastVisitedTab.favIconUrl || getIconForUrl(leastVisitedTab.url),
-                    expiration: Date.now() + 2 * 60 * 1000,
+                    expiration: Date.now() + expirationDays,
                 }
                 addToTempList([removedTabInfo]);
             }
@@ -176,29 +195,28 @@ chrome.tabs.onCreated.addListener((tab) => {
 
 
 chrome.alarms.onAlarm.addListener((alarm) => {
-    if (alarm.name === 'dailyJob') {
-        chrome.storage.local.get({ tempList: [] }, async (result) => {
-            const { expiringTabs: expiredTabs } = await chrome.storage.local.get({ expiringTabs: [] });
-            let tabs = result.tempList || [];
-            tabs = tabs.filter((tab: MiniTab) => !expiredTabs.some((expiredTab: MiniTab) => expiredTab.url === tab.url));
-            // addToTempList(tabs);
-            // chrome.storage.local.set({ expiringTabs: [] });
-            chrome.storage.local.set({ tempList: tabs, expiringTabs: [] });
-            const expiringTabs = tabs.filter((tab: MiniTab) => tab.expiration && new Date(tab.expiration).getTime() < (Date.now() + 60 * 1000));
-            if (expiringTabs.length > 0) {
-                chrome.action.openPopup(() => {
-                    if (chrome.runtime.lastError) {
-                        console.error('Failed to open popup:', chrome.runtime.lastError);
-                    } else {
-                        console.log('Popup opened successfully.');
-                        chrome.storage.local.set({ expiringTabs })
-                        chrome.runtime.sendMessage({
-                            type: 'EXPIRING_TABS',
-                            tabs: expiringTabs
-                        });
-                    }
-                });
-            }
-        })
-    }
+    chrome.storage.local.get({ mode: 'default' }, res => {
+        if (alarm.name === (res.mode)) {
+            chrome.storage.local.get({ tempList: [], expiringTabs: [], reminderAlarm: defaultMode.reminderAlarm }, (result) => {
+                const { tempList, expiringTabs: expiredTabs, reminderAlarm } = result;
+                const tabs = tempList.filter((tab: MiniTab) => !expiredTabs.some((expiredTab: MiniTab) => expiredTab.url === tab.url));
+                chrome.storage.local.set({ tempList: tabs, expiringTabs: [] });
+                const expiringTabs = tabs.filter((tab: MiniTab) => tab.expiration && new Date(tab.expiration).getTime() < (Date.now() + reminderAlarm * 60 * 1000));
+                if (expiringTabs.length > 0) {
+                    chrome.action.openPopup(() => {
+                        if (chrome.runtime.lastError) {
+                            console.error('Failed to open popup:', chrome.runtime.lastError);
+                        } else {
+                            console.log('Popup opened successfully.');
+                            chrome.storage.local.set({ expiringTabs })
+                            chrome.runtime.sendMessage({
+                                type: 'EXPIRING_TABS',
+                                tabs: expiringTabs
+                            });
+                        }
+                    });
+                }
+            })
+        }
+    })
 })

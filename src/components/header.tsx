@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Button } from "./ui/button";
 import { Tabs, TabsList, TabsTrigger } from "./ui/tabs"
-import { Bookmark, ChevronDown, Clock, FileText, Layout, MoreVertical, Save, Settings } from "lucide-react";
+import { Bookmark, Clock, FileText, Layout, MoreVertical, Save, Settings } from "lucide-react";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -9,12 +9,19 @@ import {
     DropdownMenuTrigger,
 } from "./ui/dropdown-menu"
 
-export default function Header({ multipleWindows, current, setCurrent, handleSave }: {
+export default function Header({ multipleWindows, current, julienMode, setCurrent, handleSave, setJulienMode }: {
     multipleWindows: boolean;
     current: 'dialog' | 'main' | 'options' | 'expiring';
+    julienMode: boolean;
     setCurrent: (value: 'dialog' | 'main' | 'options' | 'expiring') => void;
     handleSave: (action: string) => void;
+    setJulienMode: (value: boolean) => void;
 }) {
+    const handleJulienMode = () => {
+        chrome.runtime.sendMessage({type: 'TOGGLE_JULIEN_MODE', julienMode}, () => {
+            setJulienMode(!julienMode)
+        })
+    }
     return (
         <div className="bg-background p-2 rounded-lg w-[350px]">
             <div className="flex items-center justify-between">
@@ -56,6 +63,10 @@ export default function Header({ multipleWindows, current, setCurrent, handleSav
                                 <span>Save All Windows</span>
                             </DropdownMenuItem>
                         )}
+                        <DropdownMenuItem onClick={handleJulienMode}>
+                            <img src='/Julien.png' alt="Julien" className="mr-2 h-6 w-5" />
+                            <span>{julienMode ? 'Deactivate Julien Mode' : 'Activate Julien Mode'}</span>
+                        </DropdownMenuItem>
                     </DropdownMenuContent>
                 </DropdownMenu>
             </div>
