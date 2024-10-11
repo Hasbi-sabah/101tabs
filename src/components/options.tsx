@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { AlertTriangle, CheckCircle, Clock } from 'lucide-react';
+import { CheckCircle, Clock } from 'lucide-react';
 
 import { Button } from './ui/button';
 import {
@@ -64,29 +64,29 @@ export default function Options({
         <form onSubmit={handleSubmit}>
           <div className='space-y-6'>
             {julienMode ? (
-              <div className='rounded-lg bg-gradient-to-r from-purple-400 via-pink-500 to-red-500 p-1'>
-                <div className='rounded-lg bg-white p-4'>
+              <div className='rounded-lg bg-gradient-to-r from-blue-700 via-purple-900 to-red-700 p-1'>
+                <div className='rounded-lg bg-blue p-4'>
                   <div className='flex items-center space-x-2'>
                     <Clock className='h-6 w-6 text-purple-500' />
-                    <h3 className='text-lg font-semibold text-purple-700'>
+                    <h3 className='text-lg font-semibold text-yellow-200'>
                       Julien Mode Activated
                     </h3>
                   </div>
-                  <p className='mt-2 text-sm text-gray-600'>
+                  <p className='mt-2 text-sm text-gray-300'>
                     For those lacking basic time travel abilities:
                   </p>
-                  <ul className='mt-2 space-y-1 text-sm text-gray-600'>
+                  <ul className='mt-2 space-y-1 text-sm text-gray-300'>
                     <li className='flex items-center'>
-                      <AlertTriangle className='mr-2 h-4 w-4 text-yellow-500' />
-                      Tab Limit: 3
+                      {/* <AlertTriangle className='mr-2 h-4 w-4 text-yellow-500' /> */}
+                      - <span className='font-bold'>&nbsp; Tab Limit:&nbsp;</span> 3
                     </li>
                     <li className='flex items-center'>
-                      <AlertTriangle className='mr-2 h-4 w-4 text-yellow-500' />
-                      Expiration of Closed Tabs: 2 mins
+                      {/* <AlertTriangle className='mr-2 h-4 w-4 text-yellow-500' /> */}
+                      - <span className='font-bold'>&nbsp; Expiration of Closed Tabs:</span>&nbsp; 2 mins
                     </li>
                     <li className='flex items-center'>
-                      <AlertTriangle className='mr-2 h-4 w-4 text-yellow-500' />
-                      Alarm before deletion: 1 min
+                      {/* <AlertTriangle className='mr-2 h-4 w-4 text-yellow-500' /> */}
+                      - <span className='font-bold'>&nbsp; Alarm before deletion: &nbsp;</span> 1 min
                     </li>
                   </ul>
                 </div>
