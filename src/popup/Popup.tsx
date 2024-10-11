@@ -36,15 +36,7 @@ export default function Popup(): JSX.Element {
 
   useEffect(() => {
     chrome.runtime.sendMessage({ type: 'REQUEST_TABS_INFO' }, (response) => {
-      if (chrome.runtime.lastError) {
-        console.error(
-          'Error sending message:',
-          chrome.runtime.lastError.message
-        );
-      } else {
-        console.log('Popup: received response from background:', response);
-        setTabs(response.tabs);
-      }
+      setTabs(response.tabs);
     });
     chrome.runtime.sendMessage(
       { type: 'REQUEST_IF_MULTIPLE_WINDOWS' },
@@ -56,6 +48,8 @@ export default function Popup(): JSX.Element {
       if (message.type === 'EXPIRING_TABS') {
         setExpiringTabs(message.tabs);
         setCurrent('dialog');
+      } else if (message.type === 'FIRST_INSTALL') {
+        setCurrent('options');
       }
     };
     chrome.storage.local.get({ tabLimit: 7 }, (result) => {

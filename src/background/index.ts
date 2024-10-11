@@ -51,6 +51,12 @@ function addToTempList(tabs: MiniTab[], callback?: (response: { status: string, 
         );
     });
 }
+const isValidMiniTab = (tab: MiniTab): tab is MiniTab => (
+    typeof tab.title === 'string' &&
+    typeof tab.url === 'string' &&
+    typeof tab.icon === 'string' &&
+    typeof tab.expiration === 'number'
+);
 
 chrome.runtime.onInstalled.addListener(() => {
     chrome.storage.local.set({ expiringTabs: [], tempList: [], ...defaultMode, mode: 'default' })
@@ -77,6 +83,11 @@ chrome.runtime.onInstalled.addListener(() => {
         title: "Save tabs of all windows",
         contexts: ["page"]
     });
+    chrome.action.openPopup(() => {
+        chrome.runtime.sendMessage({
+            type: 'FIRST_INSTALL',
+        });
+    })
 });
 
 chrome.contextMenus.onClicked.addListener((info) => {
@@ -159,9 +170,31 @@ chrome.runtime.onMessage.addListener((message, _, sendResponse) => {
         })
     } else if (message.type === 'TOGGLE_JULIEN_MODE') {
         const data = message.julienMode ? { ...defaultMode, mode: 'default' } : { ...julienMode, mode: 'julien' }
-        if (message.julienMode) chrome.storage.local.set({ ...data })
-        else chrome.storage.local.set({ ...data })
+        chrome.storage.local.set({ ...data })
         sendResponse({ ...data })
+    } else if (message.type === 'VALIDATE_IMPORT') {
+        const { tabLimit, expirationDays, reminderAlarm, tempList, expiringTabs, mode } = message.data;
+
+        const isValidTabLimit = typeof tabLimit === 'number' && tabLimit >= 5 && tabLimit <= 30;
+        const isValidExpirationDays = typeof expirationDays === 'number' && expirationDays >= 1 * 24 * 60 * 60 * 1000 && expirationDays <= 7 * 24 * 60 * 60 * 1000;
+        const isValidReminderAlarm = typeof reminderAlarm === 'number';
+        const isValidTempList = Array.isArray(tempList) && tempList.every(isValidMiniTab);
+        const isValidExpiringTabs = Array.isArray(expiringTabs);
+        const isValidMode = typeof mode === 'string';
+
+        if (isValidTabLimit && isValidExpirationDays && isValidReminderAlarm && isValidTempList && isValidExpiringTabs && isValidMode) {
+            chrome.storage.local.set({
+                tabLimit,
+                expirationDays,
+                reminderAlarm,
+                tempList,
+                expiringTabs,
+                mode,
+            });
+            sendResponse({ status: 'SUCCESS', tabLimit, expirationDays });
+        } else {
+            sendResponse({ status: 'FAILURE', error: 'Invalid data format' });
+        }
     }
     return true;
 });
@@ -169,27 +202,34 @@ chrome.runtime.onMessage.addListener((message, _, sendResponse) => {
 chrome.tabs.onCreated.addListener((tab) => {
     chrome.tabs.query({ windowId: tab.windowId }, async (tabs) => {
         const { tabLimit, expirationDays } = await chrome.storage.local.get(["tabLimit", "expirationDays"]);
-        if (tabs.length > tabLimit) {
-            let leastVisitedTab = tabs[0];
-            tabs.forEach((t) => {
-                if (t.id !== tab.id && t.lastAccessed !== undefined && (leastVisitedTab.lastAccessed === undefined || t.lastAccessed < leastVisitedTab.lastAccessed)) {
+        let loop = tabs
+        const removedTabs = []
+        while (loop.length > tabLimit) {
+            let leastVisitedTab = loop[0];
+            let foundNewTab = false;
+            loop.forEach((t) => {
+                if (t.url === 'chrome://newtab/' && !foundNewTab) {
+                    leastVisitedTab = t;
+                    foundNewTab = true;
+                } else if (!foundNewTab && t.id !== tab.id && t.lastAccessed !== undefined && (leastVisitedTab.lastAccessed === undefined || t.lastAccessed < leastVisitedTab.lastAccessed)) {
                     leastVisitedTab = t;
                 }
             });
             if (leastVisitedTab.id !== undefined) {
                 chrome.tabs.remove(leastVisitedTab.id);
-                if (leastVisitedTab.title === undefined || leastVisitedTab.url === undefined) {
-                    return
+                if (leastVisitedTab.title !== undefined && leastVisitedTab.url !== undefined) {
+                    const removedTabInfo: MiniTab = {
+                        title: leastVisitedTab.title,
+                        url: leastVisitedTab.url,
+                        icon: leastVisitedTab.favIconUrl || getIconForUrl(leastVisitedTab.url),
+                        expiration: Date.now() + expirationDays,
+                    }
+                    removedTabs.push(removedTabInfo)
                 }
-                const removedTabInfo: MiniTab = {
-                    title: leastVisitedTab.title,
-                    url: leastVisitedTab.url,
-                    icon: leastVisitedTab.favIconUrl || getIconForUrl(leastVisitedTab.url),
-                    expiration: Date.now() + expirationDays,
-                }
-                addToTempList([removedTabInfo]);
+                loop = loop.filter(t => t.id !== leastVisitedTab.id);
             }
         }
+        addToTempList(removedTabs);
     });
 });
 
@@ -204,16 +244,11 @@ chrome.alarms.onAlarm.addListener((alarm) => {
                 const expiringTabs = tabs.filter((tab: MiniTab) => tab.expiration && new Date(tab.expiration).getTime() < (Date.now() + reminderAlarm * 60 * 1000));
                 if (expiringTabs.length > 0) {
                     chrome.action.openPopup(() => {
-                        if (chrome.runtime.lastError) {
-                            console.error('Failed to open popup:', chrome.runtime.lastError);
-                        } else {
-                            console.log('Popup opened successfully.');
-                            chrome.storage.local.set({ expiringTabs })
-                            chrome.runtime.sendMessage({
-                                type: 'EXPIRING_TABS',
-                                tabs: expiringTabs
-                            });
-                        }
+                        chrome.storage.local.set({ expiringTabs })
+                        chrome.runtime.sendMessage({
+                            type: 'EXPIRING_TABS',
+                            tabs: expiringTabs
+                        });
                     });
                 }
             })
