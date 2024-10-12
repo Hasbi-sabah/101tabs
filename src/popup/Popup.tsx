@@ -36,7 +36,7 @@ export default function Popup(): JSX.Element {
 
   useEffect(() => {
     chrome.runtime.sendMessage({ type: 'REQUEST_TABS_INFO' }, (response) => {
-      setTabs(response.tabs);
+      setTabs(response.tabs.sort((a: MiniTab, b: MiniTab) => a.expiration - b.expiration));
     });
     chrome.runtime.sendMessage(
       { type: 'REQUEST_IF_MULTIPLE_WINDOWS' },
