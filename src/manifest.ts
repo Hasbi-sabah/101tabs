@@ -3,13 +3,10 @@ import { defineManifest } from '@crxjs/vite-plugin';
 
 import packageData from '../package.json';
 
-const isDev = process.env.NODE_ENV === 'development';
 
 export default defineManifest({
   manifest_version: 3,
-  name: `${packageData.displayName || packageData.name}${
-    isDev ? ` ➡️ Dev` : ''
-  }`,
+  name: packageData.displayName,
   version: packageData.version,
   description: packageData.description,
   background: {
@@ -34,12 +31,6 @@ export default defineManifest({
   },
   permissions: ['alarms', 'activeTab', 'storage', 'tabs', 'contextMenus', 'unlimitedStorage', 'downloads'],
   host_permissions: ['<all_urls>'] ,
-  content_scripts: [
-    {
-      js: ['src/content/index.prod.tsx'],
-      matches: ['<all_urls>'],
-    },
-  ],
   web_accessible_resources: [
     {
       resources: ['icon16.png', 'icon32.png', 'icon48.png', 'icon128.png'],

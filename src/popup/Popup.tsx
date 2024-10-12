@@ -64,7 +64,7 @@ export default function Popup(): JSX.Element {
       { type: 'TOGGLE_JULIEN_MODE', julienMode },
       (response) => {
         setTabLimit(response.tabLimit);
-        setExpirationDays(response.expirationDays);
+        setExpirationDays(response.expirationDays / (24 * 60 * 60 * 1000));
         setJulienMode(!julienMode);
         setCurrent('options');
       }
