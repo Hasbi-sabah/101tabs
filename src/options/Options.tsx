@@ -88,7 +88,7 @@ export default function Options() {
                 setExpirationDays(
                   response.expirationDays / (24 * 60 * 60 * 1000)
                 );
-                setJMode(response.mode);
+                setJMode(response.tabLimit === 3);
               } else {
                 toast({
                   title: 'Import failed',
