@@ -33,22 +33,30 @@ export default function Options({
   const [save, setSave] = useState<string>('Save Changes');
 
   useEffect(() => {
-    chrome.storage.local.get(['tabLimit', 'expirationDays'], (result) => {
-      setTabLimit(result.tabLimit || 7);
-      setExpirationDays(result.expirationDays / (24 * 60 * 60 * 1000) || 3);
-      setJulienMode(result.tabLimit === 3);
-    });
+    try {
+      chrome.storage.local.get(['tabLimit', 'expirationDays'], (result) => {
+        setTabLimit(result.tabLimit || 7);
+        setExpirationDays(result.expirationDays / (24 * 60 * 60 * 1000) || 3);
+        setJulienMode(result.tabLimit === 3);
+      });
+    } catch (e) {
+      //pass
+    }
   }, []);
   const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    chrome.storage.local.set({
-      tabLimit,
-      expirationDays: expirationDays * 24 * 60 * 60 * 1000,
-    });
-    setSave('Saved');
-    setTimeout(() => {
-      handleCancel('main');
-    }, 1000);
+    try {
+      e.preventDefault();
+      chrome.storage.local.set({
+        tabLimit,
+        expirationDays: expirationDays * 24 * 60 * 60 * 1000,
+      });
+      setSave('Saved');
+      setTimeout(() => {
+        handleCancel('main');
+      }, 1000);
+    } catch (e) {
+      //pass
+    }
   };
   return (
     <Card className='w-[350px] border-none'>
@@ -65,7 +73,7 @@ export default function Options({
           <div className='space-y-6'>
             {julienMode ? (
               <div className='rounded-lg bg-gradient-to-r from-blue-700 via-purple-900 to-red-700 p-1'>
-                <div className='rounded-lg bg-blue p-4'>
+                <div className='bg-blue rounded-lg p-4'>
                   <div className='flex items-center space-x-2'>
                     <Clock className='h-6 w-6 text-purple-500' />
                     <h3 className='text-lg font-semibold text-yellow-200'>
@@ -78,15 +86,25 @@ export default function Options({
                   <ul className='mt-2 space-y-1 text-sm text-gray-300'>
                     <li className='flex items-center'>
                       {/* <AlertTriangle className='mr-2 h-4 w-4 text-yellow-500' /> */}
-                      - <span className='font-bold'>&nbsp; Tab Limit:&nbsp;</span> 3
+                      -{' '}
+                      <span className='font-bold'>&nbsp; Tab Limit:&nbsp;</span>{' '}
+                      3
                     </li>
                     <li className='flex items-center'>
                       {/* <AlertTriangle className='mr-2 h-4 w-4 text-yellow-500' /> */}
-                      - <span className='font-bold'>&nbsp; Expiration of Closed Tabs:</span>&nbsp; 2 mins
+                      -{' '}
+                      <span className='font-bold'>
+                        &nbsp; Expiration of Closed Tabs:
+                      </span>
+                      &nbsp; 2 mins
                     </li>
                     <li className='flex items-center'>
                       {/* <AlertTriangle className='mr-2 h-4 w-4 text-yellow-500' /> */}
-                      - <span className='font-bold'>&nbsp; Alarm before deletion: &nbsp;</span> 1 min
+                      -{' '}
+                      <span className='font-bold'>
+                        &nbsp; Alarm before deletion: &nbsp;
+                      </span>{' '}
+                      1 min
                     </li>
                   </ul>
                 </div>

@@ -1,6 +1,7 @@
 import React, { JSX, useState } from 'react';
 import humanizeDuration from 'humanize-duration';
 import { TabletSmartphone } from 'lucide-react';
+
 import { MiniTab } from '../utils/types.s';
 
 const MAX_TITLE_LENGTH = 30;
@@ -13,22 +14,26 @@ export default function MainPopUp({
 }): JSX.Element {
   const [hoveredIndex, setHoveredIndex] = useState<string | null>(null);
   const handleLinkClick = (url: string) => {
-    chrome.runtime.sendMessage({ type: 'OPEN_TAB', url }, (response) => {
-      if (!response.found) {
-        if (url.startsWith('chrome://')) {
-          chrome.tabs.create({ url });
-        } else {
-          window.open(url, '_blank', 'noopener,noreferrer');
+    try {
+      chrome.runtime.sendMessage({ type: 'OPEN_TAB', url }, (response) => {
+        if (!response.found) {
+          if (url.startsWith('chrome://')) {
+            chrome.tabs.create({ url });
+          } else {
+            window.open(url, '_blank', 'noopener,noreferrer');
+          }
         }
-      }
-    });
+      });
+    } catch (e) {
+      //pass
+    }
   };
   const getExpirationMessage = (expirationTimestamp: number) => {
     const expirationDate = new Date(expirationTimestamp);
     const now = Date.now();
     const duration = expirationDate.getTime() - now;
     if (duration < 0) {
-        return 'This tab is expiring soon..'
+      return 'This tab is expiring soon..';
     }
     const humanizedDuration = humanizeDuration(duration, {
       largest: 1,

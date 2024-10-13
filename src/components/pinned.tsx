@@ -15,20 +15,24 @@ export default function PinnedTabs() {
   const [isPinned, setIsPinned] = useState<boolean>(false);
   const [maxTabs, setMaxTabs] = useState<number>(6);
   useEffect(() => {
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-      if (tabs.length > 0) {
-        const tab = tabs[0];
-        setCurrentTab({
-          title: tab.title || '',
-          url: tab.url || '',
-          icon: tab.favIconUrl || '',
-        });
-      }
-    });
-    chrome.storage.local.get({ pinnedTabs: [], tabLimit: 7 }, (result) => {
-      setPinnedTabs(result.pinnedTabs);
-      setMaxTabs(result.tabLimit - 1);
-    });
+    try {
+      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+        if (tabs.length > 0) {
+          const tab = tabs[0];
+          setCurrentTab({
+            title: tab.title || '',
+            url: tab.url || '',
+            icon: tab.favIconUrl || '',
+          });
+        }
+      });
+      chrome.storage.local.get({ pinnedTabs: [], tabLimit: 7 }, (result) => {
+        setPinnedTabs(result.pinnedTabs);
+        setMaxTabs(result.tabLimit - 1);
+      });
+    } catch (e) {
+      //pass
+    }
   }, []);
   useEffect(() => {
     setIsPinned(
@@ -36,32 +40,44 @@ export default function PinnedTabs() {
     );
   }, [currentTab, pinnedTabs]);
   const handlePinUnpin = (url: string) => {
-    const tabIndex = pinnedTabs.findIndex((tab: PinnedTab) => tab.url === url);
-    if (tabIndex > -1) {
-      const tabs = [...pinnedTabs];
-      tabs.splice(tabIndex, 1);
-      chrome.storage.local.set({ pinnedTabs: tabs }, () => setPinnedTabs(tabs));
-    } else {
-      if (currentTab) {
-        chrome.runtime.sendMessage(
-          { type: 'PIN_TAB', currentTab },
-          (response) => {
-            setPinnedTabs(response.pinnedTabs);
-          }
+    try {
+      const tabIndex = pinnedTabs.findIndex(
+        (tab: PinnedTab) => tab.url === url
+      );
+      if (tabIndex > -1) {
+        const tabs = [...pinnedTabs];
+        tabs.splice(tabIndex, 1);
+        chrome.storage.local.set({ pinnedTabs: tabs }, () =>
+          setPinnedTabs(tabs)
         );
+      } else {
+        if (currentTab) {
+          chrome.runtime.sendMessage(
+            { type: 'PIN_TAB', currentTab },
+            (response) => {
+              setPinnedTabs(response.pinnedTabs);
+            }
+          );
+        }
       }
+    } catch (e) {
+      //pass
     }
   };
   const handleOpen = (url: string) => {
-    chrome.runtime.sendMessage({ type: 'OPEN_TAB', url }, (response) => {
-      if (!response.found) {
-        if (url.startsWith('chrome://')) {
-          chrome.tabs.create({ url });
-        } else {
-          window.open(url, '_blank', 'noopener,noreferrer');
+    try {
+      chrome.runtime.sendMessage({ type: 'OPEN_TAB', url }, (response) => {
+        if (!response.found) {
+          if (url.startsWith('chrome://')) {
+            chrome.tabs.create({ url });
+          } else {
+            window.open(url, '_blank', 'noopener,noreferrer');
+          }
         }
-      }
-    });
+      });
+    } catch (e) {
+      //pass
+    }
   };
   return (
     <div className='rounded-lg bg-background p-4 shadow-sm'>

@@ -1,11 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import {
-  CheckCircle,
-  Clock,
-  Download,
-  Trash2,
-  Upload,
-} from 'lucide-react';
+import { CheckCircle, Clock, Download, Trash2, Upload } from 'lucide-react';
 
 import { defaultMode } from '../background/index';
 import {
@@ -59,7 +53,7 @@ export default function Options() {
       {
         tabLimit: defaultMode.tabLimit,
         expirationDays: defaultMode.expirationDays,
-        reminderAlarm: defaultMode.reminderAlarm,
+        mode: 'default',
         tempList: [],
         expiringTabs: [],
       },
@@ -94,7 +88,7 @@ export default function Options() {
                 setExpirationDays(
                   response.expirationDays / (24 * 60 * 60 * 1000)
                 );
-                setJMode(response.jMode);
+                setJMode(response.mode);
               } else {
                 toast({
                   title: 'Import failed',
@@ -122,10 +116,10 @@ export default function Options() {
   const handleDeleteData = () => {
     chrome.storage.local.clear(() => {
       chrome.runtime.sendMessage(
-        { type: 'TOGGLE_JULIEN_MODE', jMode: true },
+        { type: 'TOGGLE_JULIEN_MODE', julienMode: true },
         (response) => {
           setTabLimit(response.tabLimit);
-          setExpirationDays(response.expirationDays);
+          setExpirationDays(response.expirationDays / (24 * 60 * 60 * 1000));
           setJMode(false);
         }
       );
@@ -137,14 +131,16 @@ export default function Options() {
   };
   return (
     <div className='container mx-auto px-4 py-8'>
-      <h1 className='mb-2 text-3xl font-bold'>Tab Manager Options</h1>
-      <p className='mb-8 text-lg text-muted-foreground'>
-        Configure your tab management preferences
-      </p>
+      <h1 className='b-2 pb-10 text-center text-3xl font-bold'>
+        101tabs settings
+      </h1>
 
-      <form onSubmit={handleSubmit} className='space-y-8'>
+      <form
+        onSubmit={handleSubmit}
+        className='flex flex-col items-center gap-3 space-y-8'
+      >
         {jMode ? (
-          <div className='rounded-lg bg-gradient-to-r from-blue-700 via-purple-900 to-red-700 p-1 w-[400px]'>
+          <div className='w-[400px] rounded-lg bg-gradient-to-r from-blue-700 via-purple-900 to-red-700 p-1'>
             <div className='bg-blue rounded-lg p-4'>
               <div className='flex items-center space-x-2'>
                 <Clock className='h-6 w-6 text-purple-500' />
@@ -219,7 +215,19 @@ export default function Options() {
           </div>
         )}
 
-        <div className='flex items-center justify-between'>
+        <div className='flex flex-col items-center justify-between gap-5'>
+          {!jMode && (
+            <Button
+              onClick={handleSubmit}
+              variant={save === 'Saved' ? 'default' : 'default'}
+              className={`w-[60%] ${save === 'Saved' ? 'bg-green-500 hover:bg-green-600' : ''}`}
+            >
+              {save === 'Saved' ? (
+                <CheckCircle className='mr-2 h-4 w-4' />
+              ) : null}
+              {save}
+            </Button>
+          )}
           <div className='space-x-4'>
             <Button onClick={handleExport} variant='outline'>
               <Upload className='mr-2 h-4 w-4' />
@@ -259,20 +267,6 @@ export default function Options() {
               </AlertDialogContent>
             </AlertDialog>
           </div>
-          {!jMode && (
-            <Button
-              onClick={handleSubmit}
-              variant={save === 'Saved' ? 'default' : 'default'}
-              className={
-                save === 'Saved' ? 'bg-green-500 hover:bg-green-600' : ''
-              }
-            >
-              {save === 'Saved' ? (
-                <CheckCircle className='mr-2 h-4 w-4' />
-              ) : null}
-              {save}
-            </Button>
-          )}
         </div>
       </form>
     </div>

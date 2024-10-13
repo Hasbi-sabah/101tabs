@@ -19,40 +19,59 @@ export default function ExpiringTabs({
 }) {
   const [expTabs, setExpTabs] = useState<MiniTab[]>([]);
   useEffect(() => {
-    chrome.runtime.sendMessage(
-      { type: 'REQUEST_EXPIRING_TABS_INFO' },
-      (response) => {
-        setExpTabs(response.expiringTabs);
-      }
-    );
+    try {
+      chrome.runtime.sendMessage(
+        { type: 'REQUEST_EXPIRING_TABS_INFO' },
+        (response) => {
+          setExpTabs(response.expiringTabs);
+        }
+      );
+    } catch (e) {
+      //pass
+    }
   }, []);
   const handleDismissAll = () => {
-    chrome.runtime.sendMessage({ type: 'DISMISS_ALL_EXPIRING' }, (response) => {
-      setExpTabs([]);
-      setTabs(response.tempList);
-    });
+    try {
+      chrome.runtime.sendMessage(
+        { type: 'DISMISS_ALL_EXPIRING' },
+        (response) => {
+          setExpTabs([]);
+          setTabs(response.tempList);
+        }
+      );
+    } catch (e) {
+      //pass
+    }
   };
 
   const handleDismiss = (url: string) => {
-    chrome.runtime.sendMessage(
-      { type: 'DISMISS_EXPIRING_TAB', url },
-      (response) => {
-        setExpTabs(response.expiringTabs);
-        setTabs(response.tempList);
-      }
-    );
+    try {
+      chrome.runtime.sendMessage(
+        { type: 'DISMISS_EXPIRING_TAB', url },
+        (response) => {
+          setExpTabs(response.expiringTabs);
+          setTabs(response.tempList);
+        }
+      );
+    } catch (e) {
+      //pass
+    }
   };
 
   const handleOpen = (url: string) => {
-    chrome.runtime.sendMessage({ type: 'OPEN_TAB', url }, (response) => {
-      if (!response.found) {
-        if (url.startsWith('chrome://')) {
-          chrome.tabs.create({ url });
-        } else {
-          window.open(url, '_blank', 'noopener,noreferrer');
+    try {
+      chrome.runtime.sendMessage({ type: 'OPEN_TAB', url }, (response) => {
+        if (!response.found) {
+          if (url.startsWith('chrome://')) {
+            chrome.tabs.create({ url });
+          } else {
+            window.open(url, '_blank', 'noopener,noreferrer');
+          }
         }
-      }
-    });
+      });
+    } catch (e) {
+      //pass
+    }
   };
 
   const truncateTitle = (title: string, limit: number) =>
