@@ -28,6 +28,12 @@ export interface MiniTab {
     expiration: number;
 }
 
+export interface PinnedTab {
+    title: string;
+    url: string;
+    icon: string;
+}
+
 export interface WindowInfo {
     alwaysOnTop: boolean;
     focused: boolean;

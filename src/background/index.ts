@@ -1,4 +1,4 @@
-import { MiniTab } from "../utils/types.s";
+import { MiniTab, PinnedTab } from "../utils/types.s";
 
 export const julienMode = {
     tabLimit: 3,
@@ -59,7 +59,7 @@ const isValidMiniTab = (tab: MiniTab): tab is MiniTab => (
 );
 
 chrome.runtime.onInstalled.addListener(() => {
-    chrome.storage.local.set({ expiringTabs: [], tempList: [], ...defaultMode, mode: 'default' })
+    chrome.storage.local.set({ expiringTabs: [], tempList: [], pinnedTabs: [], ...defaultMode, mode: 'default' })
     chrome.alarms.create('default', {
         when: Date.now(),
         periodInMinutes: defaultMode.reminderAlarm
@@ -195,38 +195,64 @@ chrome.runtime.onMessage.addListener((message, _, sendResponse) => {
         } else {
             sendResponse({ status: 'FAILURE', error: 'Invalid data format' });
         }
+    } else if (message.type === 'PIN_TAB') {
+        const pinnedTabInfo: PinnedTab = {
+            title: message.currentTab.title!,
+            url: message.currentTab.url!,
+            icon: message.currentTab.icon || getIconForUrl(message.currentTab.url),
+        }
+        chrome.storage.local.get({ pinnedTabs: [] }, (result) => {
+            const pinnedTabs: PinnedTab[] = result.pinnedTabs;
+            pinnedTabs.push(pinnedTabInfo);
+            chrome.storage.local.set({ pinnedTabs }, () => {
+                sendResponse({ pinnedTabs })
+            });
+        });
     }
     return true;
 });
 
 chrome.tabs.onCreated.addListener((tab) => {
     chrome.tabs.query({ windowId: tab.windowId }, async (tabs) => {
-        const { tabLimit, expirationDays } = await chrome.storage.local.get(["tabLimit", "expirationDays"]);
-        let loop = tabs
-        const removedTabs = []
-        while (loop.length > tabLimit) {
-            let leastVisitedTab = loop[0];
-            let foundNewTab = false;
-            loop.forEach((t) => {
-                if (t.url === 'chrome://newtab/' && !foundNewTab) {
-                    leastVisitedTab = t;
-                    foundNewTab = true;
-                } else if (!foundNewTab && t.id !== tab.id && t.lastAccessed !== undefined && (leastVisitedTab.lastAccessed === undefined || t.lastAccessed < leastVisitedTab.lastAccessed)) {
-                    leastVisitedTab = t;
+        const { tabLimit, expirationDays, pinnedTabs } = await chrome.storage.local.get(["tabLimit", "expirationDays", "pinnedTabs"]);
+        const pinnedUrls = pinnedTabs.map((pinnedTab: PinnedTab) => pinnedTab.url);
+        const removedTabs: MiniTab[] = [];
+        const newTab = tabs.find(t => t.url === 'chrome://newtab/');
+        if (newTab && newTab.id !== undefined) {
+            chrome.tabs.remove(newTab.id);
+            tabs = tabs.filter(t => t.id !== newTab.id);
+        }
+        while (tabs.length > tabLimit) {
+            let nonPinnedTabs = tabs.filter(t => !pinnedUrls.includes(t.url));
+
+            // Find the least visited tab
+            let leastVisitedTab = nonPinnedTabs.reduce((leastVisited: chrome.tabs.Tab | null, currentTab: chrome.tabs.Tab) => {
+                if (currentTab.url === 'chrome://newtab/') {
+                    return currentTab;
                 }
-            });
-            if (leastVisitedTab.id !== undefined) {
+                if (!leastVisited ||
+                    (currentTab.lastAccessed !== undefined &&
+                        (leastVisited.lastAccessed === undefined || currentTab.lastAccessed < leastVisited.lastAccessed))) {
+                    return currentTab;
+                }
+                return leastVisited;
+            }, null);
+
+            if (leastVisitedTab && leastVisitedTab.id !== undefined) {
                 chrome.tabs.remove(leastVisitedTab.id);
                 if (leastVisitedTab.title !== undefined && leastVisitedTab.url !== undefined) {
                     const removedTabInfo: MiniTab = {
                         title: leastVisitedTab.title,
                         url: leastVisitedTab.url,
                         icon: leastVisitedTab.favIconUrl || getIconForUrl(leastVisitedTab.url),
-                        expiration: Date.now() + expirationDays,
-                    }
-                    removedTabs.push(removedTabInfo)
+                        expiration: Date.now() + expirationDays
+                    };
+                    removedTabs.push(removedTabInfo);
                 }
-                loop = loop.filter(t => t.id !== leastVisitedTab.id);
+                tabs = tabs.filter(t => t.id !== leastVisitedTab.id);
+            } else {
+                // No more tabs to remove that are not pinned
+                break;
             }
         }
         addToTempList(removedTabs);

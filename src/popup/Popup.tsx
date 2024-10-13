@@ -5,6 +5,7 @@ import {
   FileText,
   Layout,
   MoreVertical,
+  Pin,
   Save,
   Settings,
 } from 'lucide-react';
@@ -13,6 +14,7 @@ import Dialog from '../components/dialog';
 import ExpiringTabs from '../components/expiringTabs';
 import MainPopUp from '../components/mainPopUp';
 import Options from '../components/options';
+import PinnedTabs from '../components/pinned';
 import { Button } from '../components/ui/button';
 import {
   DropdownMenu,
@@ -25,9 +27,10 @@ import { MiniTab } from '../utils/types.s';
 
 export default function Popup(): JSX.Element {
   const [current, setCurrent] = useState<
-    'dialog' | 'main' | 'options' | 'expiring'
+    'dialog' | 'main' | 'options' | 'expiring' | 'pinned'
   >('main');
   const [tabs, setTabs] = useState<MiniTab[]>([]);
+  const [pinned, setPinned] = useState([]);
   const [expiringTabs, setExpiringTabs] = useState<MiniTab[]>([]);
   const [multipleWindows, setMultipleWindows] = useState<boolean>(false);
   const [julienMode, setJulienMode] = useState<boolean>(false);
@@ -36,7 +39,11 @@ export default function Popup(): JSX.Element {
 
   useEffect(() => {
     chrome.runtime.sendMessage({ type: 'REQUEST_TABS_INFO' }, (response) => {
-      setTabs(response.tabs.sort((a: MiniTab, b: MiniTab) => a.expiration - b.expiration));
+      setTabs(
+        response.tabs.sort(
+          (a: MiniTab, b: MiniTab) => a.expiration - b.expiration
+        )
+      );
     });
     chrome.runtime.sendMessage(
       { type: 'REQUEST_IF_MULTIPLE_WINDOWS' },
@@ -97,28 +104,52 @@ export default function Popup(): JSX.Element {
           <Tabs
             value={current}
             onValueChange={(value) =>
-              setCurrent(value as 'dialog' | 'main' | 'options' | 'expiring')
+              setCurrent(
+                value as 'dialog' | 'main' | 'options' | 'expiring' | 'pinned'
+              )
             }
             className='w-[calc(100%-40px)]'
           >
-            <TabsList className='grid w-full grid-cols-3'>
-              <TabsTrigger value='main' onClick={() => setCurrent('main')}>
-                <Bookmark className='mr-2 h-4 w-4' />
-                Main
+            <TabsList className='flex w-full'>
+              <TabsTrigger
+                value='main'
+                onClick={() => setCurrent('main')}
+                className={`flex-grow transition-all duration-300 ease-in-out ${current === 'main' ? 'px-4' : 'px-2'}`}
+              >
+                <Bookmark
+                  className={`h-4 w-4 ${current === 'main' ? 'mr-2' : ''}`}
+                />
+                {current === 'main' && 'Main'}
+              </TabsTrigger>
+              <TabsTrigger
+                value='pinned'
+                onClick={() => setCurrent('pinned')}
+                className={`flex-grow transition-all duration-300 ease-in-out ${current === 'pinned' ? 'px-4' : 'px-2'}`}
+              >
+                <Pin
+                  className={`h-4 w-4 ${current === 'pinned' ? 'mr-2' : ''}`}
+                />
+                {current === 'pinned' && 'Pinned'}
               </TabsTrigger>
               <TabsTrigger
                 value='expiring'
                 onClick={() => setCurrent('expiring')}
+                className={`flex-grow transition-all duration-300 ease-in-out ${current === 'expiring' ? 'px-4' : 'px-2'}`}
               >
-                <Clock className='mr-2 h-4 w-4' />
-                Expiring
+                <Clock
+                  className={`h-4 w-4 ${current === 'expiring' ? 'mr-2' : ''}`}
+                />
+                {current === 'expiring' && 'Expiring'}
               </TabsTrigger>
               <TabsTrigger
                 value='options'
                 onClick={() => setCurrent('options')}
+                className={`flex-grow transition-all duration-300 ease-in-out ${current === 'options' ? 'px-4' : 'px-2'}`}
               >
-                <Settings className='mr-2 h-4 w-4' />
-                Options
+                <Settings
+                  className={`h-4 w-4 ${current === 'options' ? 'mr-2' : ''}`}
+                />
+                {current === 'options' && 'Settings'}
               </TabsTrigger>
             </TabsList>
           </Tabs>
@@ -159,6 +190,7 @@ export default function Popup(): JSX.Element {
       {current === 'main' && (
         <MainPopUp tabs={tabs} expiringTabs={expiringTabs} />
       )}
+      {current === 'pinned' && <PinnedTabs />}
       {current === 'options' && (
         <Options
           julienMode={julienMode}
