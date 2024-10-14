@@ -1,16 +1,15 @@
 import React, { useEffect, useState } from 'react';
-import { ExternalLink, Trash, X } from 'lucide-react';
+import { ExternalLink, Info, Trash, X } from 'lucide-react';
 
 import { MiniTab } from '../utils/types.s';
 import { Button } from './ui/button';
+import { Card, CardContent, CardFooter } from './ui/card';
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from './ui/card';
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from './ui/tooltip';
 
 export default function ExpiringTabs({
   setTabs,
@@ -78,13 +77,26 @@ export default function ExpiringTabs({
     title.length > limit ? `${title.substring(0, limit)}...` : title;
 
   return (
-    <Card className='w-[350px] border-none shadow-none'>
-      <CardHeader>
-        <CardTitle>Expiring Today</CardTitle>
-        <CardDescription>
-          Tabs that will expire at the end of the day
-        </CardDescription>
-      </CardHeader>
+    <Card className='w-[350px] border-none shadow-none p-4'>
+      <div className='flex items-center justify-center space-x-2'>
+        <h1 className='mb-4 text-2xl font-bold'>Expiring Today</h1>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger>
+              <Info className='mb-3 h-4 w-4 text-muted-foreground' />
+            </TooltipTrigger>
+            <TooltipContent
+              side='left'
+              className='max-w-[200px] bg-transparent backdrop-blur-md'
+            >
+              <p>
+                This is the graveyard of tabs, tabs that will expire within 24h
+                are held here for you to reopen or dismiss.
+              </p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      </div>
       <CardContent>
         <div className='grid w-full items-center gap-2'>
           {expTabs.map((tab) => (
@@ -119,8 +131,8 @@ export default function ExpiringTabs({
           ))}
           {expTabs.length === 0 && (
             <div className='py-4 text-center text-muted-foreground'>
-              <Trash className='mx-auto mb-2' size={24} />
-              <p>No expiring tabs</p>
+              <Trash className='mx-auto mb-2 w-12 h-12' />
+              <p className='text-sm'>No expiring tabs</p>
             </div>
           )}
         </div>

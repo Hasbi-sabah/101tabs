@@ -1,8 +1,9 @@
 import React, { JSX, useState } from 'react';
 import humanizeDuration from 'humanize-duration';
-import { TabletSmartphone } from 'lucide-react';
+import { Info, Archive } from 'lucide-react';
 
 import { MiniTab } from '../utils/types.s';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
 
 const MAX_TITLE_LENGTH = 30;
 export default function MainPopUp({
@@ -46,7 +47,23 @@ export default function MainPopUp({
       {expiringTabs.length > 0 && (
         <h1>you have {expiringTabs.length} tabs expiring in the next 24h!</h1>
       )}
-      <h1 className='text-red mb-4 text-2xl font-bold'>Open Tabs</h1>
+      <div className='flex justify-center items-center space-x-2'>
+        <h1 className='mb-4 text-2xl font-bold'>
+          Closed tabs
+        </h1>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger>
+              <Info className='h-4 w-4 text-muted-foreground mb-3' />
+            </TooltipTrigger>
+            <TooltipContent side='left' className='max-w-[200px] bg-transparent backdrop-blur-md'>
+              <p>
+                The least visited tabs will be automatically closed once you exceed your tab limit, and will be saved in this section.
+              </p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      </div>
       {tabs.length > 0 ? (
         <ul className='space-y-2'>
           {tabs.map((tab) => (
@@ -88,14 +105,11 @@ export default function MainPopUp({
           ))}
         </ul>
       ) : (
-        <div className='py-8 text-center'>
-          <TabletSmartphone className='mx-auto mb-4 h-16 w-16 text-muted-foreground' />
-          <h2 className='mb-2 text-xl font-semibold text-primary'>
-            No Open Tabs
-          </h2>
-          <p className='text-muted-foreground'>
-            You don&apos;t have any open tabs at the moment. Start browsing to
-            see your tabs here!
+        <div className="py-8 text-center">
+          <Archive className="mx-auto mb-4 h-16 w-16 text-muted-foreground" />
+          <h3 className="mb-2 text-xl font-semibold text-primary">No Removed Tabs</h3>
+          <p className="text-muted-foreground">
+            Your automatically removed tabs will appear here.
           </p>
         </div>
       )}

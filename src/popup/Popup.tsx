@@ -3,6 +3,7 @@ import {
   Bookmark,
   Clock,
   FileText,
+  FileUp,
   Layout,
   MoreVertical,
   Pin,
@@ -175,6 +176,16 @@ export default function Popup(): JSX.Element {
                   <span>Save All Windows</span>
                 </DropdownMenuItem>
               )}
+              <DropdownMenuItem
+                onClick={() => {
+                  chrome.tabs.create({
+                    url: 'chrome-extension://jgmehmdjfpbhfcjhckigpgookjjdgojp/src/options/index.html',
+                  });
+                }}
+              >
+                <FileUp className='mr-2 h-4 w-4' />
+                <span>Import/export</span>
+              </DropdownMenuItem>
               <DropdownMenuItem onClick={handleJulienMode}>
                 <img src='/Julien.png' alt='Julien' className='mr-2 h-6 w-5' />
                 <span>
@@ -203,6 +214,30 @@ export default function Popup(): JSX.Element {
         />
       )}
       {current === 'expiring' && <ExpiringTabs setTabs={setTabs} />}
+      <p className='text-center text-xs m-2 text-muted-foreground'>
+        made with{' '}
+        <span className='text-gray-500'>
+        ✨ black magic ✨
+        </span>{' '}
+        by{' '}
+        <a
+          href='https://discord.com/users/1138522399755739317'
+          target='_blank'
+          rel='noopener noreferrer'
+          className='text-primary hover:underline'
+        >
+          Sabah
+        </a>{' '}
+        and{' '}
+        <a
+          href='https://discord.com/users/1077217852987297892'
+          target='_blank'
+          rel='noopener noreferrer'
+          className='text-primary hover:underline'
+        >
+          Menna
+        </a>
+      </p>{' '}
     </div>
   );
 }

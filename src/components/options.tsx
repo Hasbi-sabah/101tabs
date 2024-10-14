@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { CheckCircle, Clock } from 'lucide-react';
+import { CheckCircle, Clock, Info } from 'lucide-react';
 
 import { Button } from './ui/button';
 import {
@@ -12,6 +12,12 @@ import {
 } from './ui/card';
 import { Label } from './ui/label';
 import { Slider } from './ui/slider';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from './ui/tooltip';
 
 export default function Options({
   julienMode,
@@ -59,14 +65,11 @@ export default function Options({
     }
   };
   return (
-    <Card className='w-[350px] border-none'>
-      <CardHeader>
-        <CardTitle className='text-2xl font-bold'>
-          Tab Manager Options
+    <Card className='w-[350px] border-none shadow-none'>
+      <CardHeader className='p-4'>
+        <CardTitle className='text-2xl font-bold text-center'>
+          Set your preferences
         </CardTitle>
-        <CardDescription>
-          Configure your tab management preferences
-        </CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit}>
@@ -85,25 +88,22 @@ export default function Options({
                   </p>
                   <ul className='mt-2 space-y-1 text-sm text-gray-300'>
                     <li className='flex items-center'>
-                      {/* <AlertTriangle className='mr-2 h-4 w-4 text-yellow-500' /> */}
-                      -{' '}
-                      <span className='font-bold'>&nbsp; Tab Limit:&nbsp;</span>{' '}
+                      -
+                      <span className='font-bold'>&nbsp; Tab Limit:&nbsp;</span>
                       3
                     </li>
                     <li className='flex items-center'>
-                      {/* <AlertTriangle className='mr-2 h-4 w-4 text-yellow-500' /> */}
-                      -{' '}
+                      -
                       <span className='font-bold'>
                         &nbsp; Expiration of Closed Tabs:
                       </span>
                       &nbsp; 2 mins
                     </li>
                     <li className='flex items-center'>
-                      {/* <AlertTriangle className='mr-2 h-4 w-4 text-yellow-500' /> */}
-                      -{' '}
+                      -
                       <span className='font-bold'>
                         &nbsp; Alarm before deletion: &nbsp;
-                      </span>{' '}
+                      </span>
                       1 min
                     </li>
                   </ul>
@@ -112,9 +112,23 @@ export default function Options({
             ) : (
               <>
                 <div className='space-y-3'>
-                  <Label htmlFor='tabLimit' className='text-base font-medium'>
-                    Tab Limit (5-30)
-                  </Label>
+                  <div className='flex items-center space-x-2'>
+                    <Label htmlFor='tabLimit' className='text-base font-medium'>
+                      Tab Limit (5-30)
+                    </Label>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger disabled>
+                          <Info className='h-4 w-4 text-muted-foreground' />
+                        </TooltipTrigger>
+                        <TooltipContent side='right' className='max-w-[150px] bg-transparent backdrop-blur-md'>
+                          <p>
+                            Set the maximum number of tabs you want to keep open per window.
+                          </p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </div>
                   <Slider
                     id='tabLimit'
                     min={5}
@@ -128,12 +142,27 @@ export default function Options({
                   </div>
                 </div>
                 <div className='space-y-3'>
-                  <Label
-                    htmlFor='expirationDays'
-                    className='text-base font-medium'
-                  >
-                    Expiration of Closed Tabs (1-7 days)
-                  </Label>
+                  <div className='flex items-center space-x-2'>
+                    <Label
+                      htmlFor='expirationDays'
+                      className='text-base font-medium'
+                    >
+                      Expiration of Closed Tabs (1-7 days)
+                    </Label>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger disabled>
+                          <Info className='h-4 w-4 text-muted-foreground' />
+                        </TooltipTrigger>
+                        <TooltipContent side='right' className='pr-2 max-w-[200px] bg-transparent backdrop-blur-md'>
+                          <p>
+                            Set how long automatically closed tabs will be saved
+                            before being permanently deleted.
+                          </p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </div>
                   <Slider
                     id='expirationDays'
                     min={1}

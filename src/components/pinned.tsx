@@ -1,7 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
-import { ExternalLink, Pin, PinOff } from 'lucide-react';
-
+import { ExternalLink, Info, Pin, PinOff } from 'lucide-react';
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+  } from './ui/tooltip';
 import { PinnedTab } from '../utils/types.s';
 import { Button } from './ui/button';
 
@@ -80,13 +84,30 @@ export default function PinnedTabs() {
     }
   };
   return (
-    <div className='rounded-lg bg-background p-4 shadow-sm'>
-      <h2 className='mb-4 text-lg font-semibold text-primary'>
-        Pinned Tabs
-        <span className='ml-5 text-sm text-muted-foreground'>
-          {pinnedTabs.length}/{maxTabs}
-        </span>
-      </h2>
+    <div className='rounded-lg bg-background p-4'>
+      <div className='flex justify-center space-x-2'>
+        <h1 className='mb-4 text-center text-2xl font-bold'>
+          Pinned Tabs
+          <span className='ml-3 text-sm text-muted-foreground'>
+            {pinnedTabs.length}/{maxTabs}
+          </span>
+        </h1>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger disabled>
+              <Info className='h-4 w-4 text-muted-foreground mb-2' />
+            </TooltipTrigger>
+            <TooltipContent
+              side='right'
+              className='max-w-[200px] bg-transparent backdrop-blur-md'
+            >
+              <p>
+                Pinned tabs will not close automatically when tab limit is reached.
+              </p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      </div>
       <Button
         className='mb-4 w-full transition-colors duration-200 ease-in-out'
         variant={isPinned ? 'secondary' : 'default'}
