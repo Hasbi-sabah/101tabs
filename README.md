@@ -4,11 +4,21 @@
 
 101tabs is designed to tackle the common problem of managing too many open tabs in your browser. It provides a streamlined and organized experience for users who frequently juggle multiple tabs. Key features include:
 
-- **Efficient Tab Management**: Easily manage and organize your tabs to reduce clutter.
-- **Tab Expiration**: Set expiration times for tabs to automatically close them after a specified period.
-- **Import/Export Tabs**: Seamlessly import and export your tabs for better control and backup.
-- **Customizable Settings**: Tailor the extension to fit your tab management needs with various settings and modes.
-- **Minimize Identical Tabs**: Automatically detect and minimize identical tabs to avoid redundancy.
+- **Customizable:** You can set a maximum number of tabs to have open at any time per window as well as the expiration time for the automatically closed tabs, tailoring the experience to your browsing habits.
+
+![Customizable Settings](./public/README_settings.png)
+
+- **Auto Tab Closure:** Automatically closes the least visited tabs when your predefined tab limit is reached, keeping your browser clean and responsive.
+
+![Auto Tab Closure](./public/README_main.png)
+
+- **Pinned Tabs Protection**: Pinned tabs remain safe and won't be closed automatically, ensuring that your most important tabs stay open.
+
+![Pinned Tabs](./public/README_pinned.png)
+
+- **Data Export/Import:** Backup and restore your tab settings and data with ease, ensuring your preferences are saved across sessions or devices.
+
+![Data Export/Import](./public/README_export.png)
 
 With 101tabs, you can keep your browsing experience clean and efficient, ensuring that you only keep the tabs you need.
 
