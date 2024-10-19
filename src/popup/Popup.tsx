@@ -4,11 +4,14 @@ import {
   Clock,
   FileText,
   FileUp,
+  Github,
   Layout,
+  MessageSquare,
   MoreVertical,
   Pin,
   Save,
   Settings,
+  Settings2,
 } from 'lucide-react';
 
 import Dialog from '../components/dialog';
@@ -31,27 +34,23 @@ export default function Popup(): JSX.Element {
     'dialog' | 'main' | 'options' | 'expiring' | 'pinned'
   >('main');
   const [tabs, setTabs] = useState<MiniTab[]>([]);
-  const [pinned, setPinned] = useState([]);
   const [expiringTabs, setExpiringTabs] = useState<MiniTab[]>([]);
   const [multipleWindows, setMultipleWindows] = useState<boolean>(false);
-  const [julienMode, setJulienMode] = useState<boolean>(false);
+  // const [julienMode, setJulienMode] = useState<boolean>(false);
   const [tabLimit, setTabLimit] = useState(7);
   const [expirationDays, setExpirationDays] = useState(3);
 
   useEffect(() => {
-    chrome.runtime.sendMessage({ type: 'REQUEST_TABS_INFO' }, (response) => {
+    chrome.storage.local.get({ tempList: [] }, (result) => {
       setTabs(
-        response.tabs.sort(
+        result.tempList.sort(
           (a: MiniTab, b: MiniTab) => a.expiration - b.expiration
         )
       );
     });
-    chrome.runtime.sendMessage(
-      { type: 'REQUEST_IF_MULTIPLE_WINDOWS' },
-      (response) => {
-        setMultipleWindows(response.multipleWindows);
-      }
-    );
+    chrome.windows.getAll({ populate: true }, (windows) => {
+      setMultipleWindows(windows.length > 1);
+    });
     const handleMessage = (message: { type: string; tabs: MiniTab[] }) => {
       if (message.type === 'EXPIRING_TABS') {
         setExpiringTabs(message.tabs);
@@ -60,24 +59,24 @@ export default function Popup(): JSX.Element {
         setCurrent('options');
       }
     };
-    chrome.storage.local.get({ tabLimit: 7 }, (result) => {
-      setJulienMode(result.tabLimit === 3);
-    });
+    // chrome.storage.local.get({ tabLimit: 7 }, (result) => {
+    //   setJulienMode(result.tabLimit === 3);
+    // });
     chrome.runtime.onMessage.addListener(handleMessage);
     return () => chrome.runtime.onMessage.removeListener(handleMessage);
   }, []);
 
-  const handleJulienMode = () => {
-    chrome.runtime.sendMessage(
-      { type: 'TOGGLE_JULIEN_MODE', julienMode },
-      (response) => {
-        setTabLimit(response.tabLimit);
-        setExpirationDays(response.expirationDays / (24 * 60 * 60 * 1000));
-        setJulienMode(!julienMode);
-        setCurrent('options');
-      }
-    );
-  };
+  // const handleJulienMode = () => {
+  //   chrome.runtime.sendMessage(
+  //     { type: 'TOGGLE_JULIEN_MODE', julienMode },
+  //     (response) => {
+  //       setTabLimit(response.tabLimit);
+  //       setExpirationDays(response.expirationDays / (24 * 60 * 60 * 1000));
+  //       setJulienMode(!julienMode);
+  //       setCurrent('options');
+  //     }
+  //   );
+  // };
 
   const handleSave = (action: string) => {
     chrome.runtime.sendMessage(
@@ -98,6 +97,21 @@ export default function Popup(): JSX.Element {
       />
     );
   }
+  const handleLinkClick = (url: string) => {
+    try {
+      chrome.runtime.sendMessage({ type: 'OPEN_TAB', url }, (response) => {
+        if (!response.found) {
+          if (url.startsWith('chrome://')) {
+            chrome.tabs.create({ url });
+          } else {
+            window.open(url, '_blank', 'noopener,noreferrer');
+          }
+        }
+      });
+    } catch (e) {
+      //pass
+    }
+  };
   return (
     <div>
       <div className='w-[350px] rounded-lg bg-background p-2'>
@@ -177,23 +191,31 @@ export default function Popup(): JSX.Element {
                 </DropdownMenuItem>
               )}
               <DropdownMenuItem
-                onClick={() => {
-                  chrome.tabs.create({
-                    url: 'chrome-extension://jgmehmdjfpbhfcjhckigpgookjjdgojp/src/options/index.html',
-                  });
-                }}
+                onClick={() =>
+                  handleLinkClick(
+                    'chrome-extension://jgmehmdjfpbhfcjhckigpgookjjdgojp/src/options/index.html'
+                  )
+                }
               >
-                <FileUp className='mr-2 h-4 w-4' />
-                <span>Import/export</span>
+                <Settings2 className='mr-2 h-4 w-4' />
+                <span>More Settings</span>
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={handleJulienMode}>
+              <DropdownMenuItem
+                onClick={() =>
+                  handleLinkClick('https://github.com/Hasbi-sabah/101tabs')
+                }
+              >
+                <Github className='mr-2 h-4 w-4' />
+                <span>Check our Github</span>
+              </DropdownMenuItem>
+              {/* <DropdownMenuItem onClick={handleJulienMode}>
                 <img src='/Julien.png' alt='Julien' className='mr-2 h-6 w-5' />
                 <span>
                   {julienMode
                     ? 'Deactivate Julien Mode'
                     : 'Activate Julien Mode'}
                 </span>
-              </DropdownMenuItem>
+              </DropdownMenuItem> */}
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
@@ -204,24 +226,20 @@ export default function Popup(): JSX.Element {
       {current === 'pinned' && <PinnedTabs />}
       {current === 'options' && (
         <Options
-          julienMode={julienMode}
+          // julienMode={julienMode}
           tabLimit={tabLimit}
           expirationDays={expirationDays}
           handleCancel={() => setCurrent('main')}
-          setJulienMode={setJulienMode}
+          // setJulienMode={setJulienMode}
           setTabLimit={setTabLimit}
           setExpirationDays={setExpirationDays}
         />
       )}
       {current === 'expiring' && <ExpiringTabs setTabs={setTabs} />}
-      <p className='text-center text-xs m-2 text-muted-foreground'>
-        made with{' '}
-        <span className='text-gray-500'>
-        ✨ black magic ✨
-        </span>{' '}
-        by{' '}
+      <p className='p-2 text-center text-xs text-muted-foreground'>
+        made with <span className='text-gray-500'>black magic</span> by{' '}
         <a
-          href='https://discord.com/users/1138522399755739317'
+          href='https://www.linkedin.com/in/sabahhasbi/'
           target='_blank'
           rel='noopener noreferrer'
           className='text-primary hover:underline'
@@ -230,14 +248,26 @@ export default function Popup(): JSX.Element {
         </a>{' '}
         and{' '}
         <a
-          href='https://discord.com/users/1077217852987297892'
+          href='https://www.linkedin.com/in/khougha/'
           target='_blank'
           rel='noopener noreferrer'
           className='text-primary hover:underline'
         >
           Menna
+        </a>{' '}
+        thanks to{' '}
+        <a
+          href='https://x.com/julienbarbier42'
+          target='_blank'
+          rel='noopener noreferrer'
+        >
+          <img
+            src='/Julien.png'
+            alt='Julien'
+            className='mb-1 inline h-6 w-5 align-middle'
+          />
         </a>
-      </p>{' '}
+      </p>
     </div>
   );
 }
