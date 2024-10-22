@@ -74,3 +74,6 @@ postcss.config.js
 
 # Windows files
 Thumbs.db
+
+package-lock.json
+pnpm-lock.yaml
