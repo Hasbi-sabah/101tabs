@@ -113,7 +113,7 @@ export default function Popup(): JSX.Element {
     }
   };
   return (
-    <div>
+    <div className='pb-2'>
       <div className='w-[350px] rounded-lg bg-background p-2'>
         <div className='flex items-center justify-between'>
           <Tabs
@@ -236,38 +236,6 @@ export default function Popup(): JSX.Element {
         />
       )}
       {current === 'expiring' && <ExpiringTabs setTabs={setTabs} />}
-      <p className='p-2 text-center text-xs text-muted-foreground'>
-        made with <span className='text-gray-500'>black magic</span> by{' '}
-        <a
-          href='https://www.linkedin.com/in/sabahhasbi/'
-          target='_blank'
-          rel='noopener noreferrer'
-          className='text-primary hover:underline'
-        >
-          Sabah
-        </a>{' '}
-        and{' '}
-        <a
-          href='https://www.linkedin.com/in/khougha/'
-          target='_blank'
-          rel='noopener noreferrer'
-          className='text-primary hover:underline'
-        >
-          Menna
-        </a>{' '}
-        thanks to{' '}
-        <a
-          href='https://x.com/julienbarbier42'
-          target='_blank'
-          rel='noopener noreferrer'
-        >
-          <img
-            src='/Julien.png'
-            alt='Julien'
-            className='mb-1 inline h-6 w-5 align-middle'
-          />
-        </a>
-      </p>
     </div>
   );
 }

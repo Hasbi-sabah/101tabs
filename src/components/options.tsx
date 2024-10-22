@@ -188,7 +188,7 @@ export default function Options({
         </form>
       </CardContent>
       {/* {!julienMode && ( */}
-      <CardFooter className='flex justify-between'>
+      <CardFooter className='flex justify-between pb-2'>
         <Button onClick={() => handleCancel('main')} variant='outline'>
           Cancel
         </Button>
@@ -203,6 +203,38 @@ export default function Options({
         </Button>
       </CardFooter>
       {/* )} */}
+      <p className='text-center text-xs text-muted-foreground'>
+        made with <span className='text-gray-500'>black magic</span> by{' '}
+        <a
+          href='https://www.linkedin.com/in/sabahhasbi/'
+          target='_blank'
+          rel='noopener noreferrer'
+          className='text-primary hover:underline'
+        >
+          Sabah
+        </a>{' '}
+        and{' '}
+        <a
+          href='https://www.linkedin.com/in/khougha/'
+          target='_blank'
+          rel='noopener noreferrer'
+          className='text-primary hover:underline'
+        >
+          Menna
+        </a>{' '}
+        thanks to{' '}
+        <a
+          href='https://x.com/julienbarbier42'
+          target='_blank'
+          rel='noopener noreferrer'
+        >
+          <img
+            src='/Julien.png'
+            alt='Julien'
+            className='mb-1 inline h-6 w-5 align-middle'
+          />
+        </a>
+      </p>
     </Card>
   );
 }

@@ -3,7 +3,7 @@
   "displayName": "101tabs",
   "description": "A Chrome extension designed to help you manage and organize your browser tabs efficiently, preventing tab overload and enhancing productivity.",
   "private": true,
-  "version": "0.1.1",
+  "version": "2.1.1",
   "type": "module",
   "scripts": {
     "dev": "vite",
