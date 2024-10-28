@@ -250,7 +250,7 @@ export default function Options() {
             <div className='flex flex-wrap justify-center gap-4'>
               <Button onClick={handleExport} variant='outline'>
                 <Upload className='mr-2 h-4 w-4' />
-                Export Settings
+                Export Data
               </Button>
               <Button variant='outline' className='relative'>
                 <input
@@ -260,7 +260,7 @@ export default function Options() {
                   accept='.json'
                 />
                 <Download className='mr-2 h-4 w-4' />
-                Import Settings
+                Import Data
               </Button>
               <AlertDialog>
                 <AlertDialogTrigger asChild>

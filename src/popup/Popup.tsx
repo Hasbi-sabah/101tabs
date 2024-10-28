@@ -1,38 +1,36 @@
-import React, { JSX, useEffect, useState } from 'react';
+import React, { JSX, useEffect, useState } from "react";
 import {
   Bookmark,
   Clock,
   FileText,
-  FileUp,
   Github,
   Layout,
-  MessageSquare,
   MoreVertical,
   Pin,
   Save,
   Settings,
   Settings2,
-} from 'lucide-react';
+} from "lucide-react";
 
-import Dialog from '../components/dialog';
-import ExpiringTabs from '../components/expiringTabs';
-import MainPopUp from '../components/mainPopUp';
-import Options from '../components/options';
-import PinnedTabs from '../components/pinned';
-import { Button } from '../components/ui/button';
+import Dialog from "../components/dialog";
+import ExpiringTabs from "../components/expiringTabs";
+import MainPopUp from "../components/mainPopUp";
+import Options from "../components/options";
+import PinnedTabs from "../components/pinned";
+import { Button } from "../components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '../components/ui/dropdown-menu';
-import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs';
-import { MiniTab } from '../utils/types.s';
+} from "../components/ui/dropdown-menu";
+import { Tabs, TabsList, TabsTrigger } from "../components/ui/tabs";
+import { MiniTab } from "../utils/types.s";
 
 export default function Popup(): JSX.Element {
   const [current, setCurrent] = useState<
-    'dialog' | 'main' | 'options' | 'expiring' | 'pinned'
-  >('main');
+    "dialog" | "main" | "options" | "expiring" | "pinned"
+  >("main");
   const [tabs, setTabs] = useState<MiniTab[]>([]);
   const [expiringTabs, setExpiringTabs] = useState<MiniTab[]>([]);
   const [multipleWindows, setMultipleWindows] = useState<boolean>(false);
@@ -52,11 +50,11 @@ export default function Popup(): JSX.Element {
       setMultipleWindows(windows.length > 1);
     });
     const handleMessage = (message: { type: string; tabs: MiniTab[] }) => {
-      if (message.type === 'EXPIRING_TABS') {
+      if (message.type === "EXPIRING_TABS") {
         setExpiringTabs(message.tabs);
-        setCurrent('dialog');
-      } else if (message.type === 'FIRST_INSTALL') {
-        setCurrent('options');
+        setCurrent("dialog");
+      } else if (message.type === "FIRST_INSTALL") {
+        setCurrent("options");
       }
     };
     // chrome.storage.local.get({ tabLimit: 7 }, (result) => {
@@ -80,31 +78,31 @@ export default function Popup(): JSX.Element {
 
   const handleSave = (action: string) => {
     chrome.runtime.sendMessage(
-      { type: 'REQUEST_SAVE_TABS', action },
+      { type: "REQUEST_SAVE_TABS", action },
       (response) => {
-        if (response.status === 'success') {
+        if (response.status === "success") {
           setTabs(response.newTempList);
-          setCurrent('main');
+          setCurrent("main");
         }
       }
     );
   };
-  if (current === 'dialog') {
+  if (current === "dialog") {
     return (
       <Dialog
-        handleReview={() => setCurrent('expiring')}
+        handleReview={() => setCurrent("expiring")}
         expiringTabsLength={expiringTabs.length}
       />
     );
   }
   const handleLinkClick = (url: string) => {
     try {
-      chrome.runtime.sendMessage({ type: 'OPEN_TAB', url }, (response) => {
+      chrome.runtime.sendMessage({ type: "OPEN_TAB", url }, (response) => {
         if (!response.found) {
-          if (url.startsWith('chrome://')) {
+          if (url.startsWith("chrome://")) {
             chrome.tabs.create({ url });
           } else {
-            window.open(url, '_blank', 'noopener,noreferrer');
+            window.open(url, "_blank", "noopener,noreferrer");
           }
         }
       });
@@ -113,99 +111,99 @@ export default function Popup(): JSX.Element {
     }
   };
   return (
-    <div className='pb-2'>
-      <div className='w-[350px] rounded-lg bg-background p-2'>
-        <div className='flex items-center justify-between'>
+    <div className="pb-2 min-h-[250px]">
+      <div className="w-[350px] rounded-lg bg-background p-2">
+        <div className="flex items-center justify-between">
           <Tabs
             value={current}
             onValueChange={(value) =>
               setCurrent(
-                value as 'dialog' | 'main' | 'options' | 'expiring' | 'pinned'
+                value as "dialog" | "main" | "options" | "expiring" | "pinned"
               )
             }
-            className='w-[calc(100%-40px)]'
+            className="w-[calc(100%-40px)]"
           >
-            <TabsList className='flex w-full'>
+            <TabsList className="flex w-full">
               <TabsTrigger
-                value='main'
-                onClick={() => setCurrent('main')}
-                className={`flex-grow transition-all duration-300 ease-in-out ${current === 'main' ? 'px-4' : 'px-2'}`}
+                value="main"
+                onClick={() => setCurrent("main")}
+                className={`flex-grow transition-all duration-300 ease-in-out ${current === "main" ? "px-4" : "px-2"}`}
               >
                 <Bookmark
-                  className={`h-4 w-4 ${current === 'main' ? 'mr-2' : ''}`}
+                  className={`h-4 w-4 ${current === "main" ? "mr-2" : ""}`}
                 />
-                {current === 'main' && 'Main'}
+                {current === "main" && "Main"}
               </TabsTrigger>
               <TabsTrigger
-                value='pinned'
-                onClick={() => setCurrent('pinned')}
-                className={`flex-grow transition-all duration-300 ease-in-out ${current === 'pinned' ? 'px-4' : 'px-2'}`}
+                value="pinned"
+                onClick={() => setCurrent("pinned")}
+                className={`flex-grow transition-all duration-300 ease-in-out ${current === "pinned" ? "px-4" : "px-2"}`}
               >
                 <Pin
-                  className={`h-4 w-4 ${current === 'pinned' ? 'mr-2' : ''}`}
+                  className={`h-4 w-4 ${current === "pinned" ? "mr-2" : ""}`}
                 />
-                {current === 'pinned' && 'Pinned'}
+                {current === "pinned" && "Pinned"}
               </TabsTrigger>
               <TabsTrigger
-                value='expiring'
-                onClick={() => setCurrent('expiring')}
-                className={`flex-grow transition-all duration-300 ease-in-out ${current === 'expiring' ? 'px-4' : 'px-2'}`}
+                value="expiring"
+                onClick={() => setCurrent("expiring")}
+                className={`flex-grow transition-all duration-300 ease-in-out ${current === "expiring" ? "px-4" : "px-2"}`}
               >
                 <Clock
-                  className={`h-4 w-4 ${current === 'expiring' ? 'mr-2' : ''}`}
+                  className={`h-4 w-4 ${current === "expiring" ? "mr-2" : ""}`}
                 />
-                {current === 'expiring' && 'Expiring'}
+                {current === "expiring" && "Expiring"}
               </TabsTrigger>
               <TabsTrigger
-                value='options'
-                onClick={() => setCurrent('options')}
-                className={`flex-grow transition-all duration-300 ease-in-out ${current === 'options' ? 'px-4' : 'px-2'}`}
+                value="options"
+                onClick={() => setCurrent("options")}
+                className={`flex-grow transition-all duration-300 ease-in-out ${current === "options" ? "px-4" : "px-2"}`}
               >
                 <Settings
-                  className={`h-4 w-4 ${current === 'options' ? 'mr-2' : ''}`}
+                  className={`h-4 w-4 ${current === "options" ? "mr-2" : ""}`}
                 />
-                {current === 'options' && 'Settings'}
+                {current === "options" && "Settings"}
               </TabsTrigger>
             </TabsList>
           </Tabs>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant='ghost' size='icon' className='h-8 w-8'>
-                <MoreVertical className='h-4 w-4' />
-                <span className='sr-only'>Save options</span>
+              <Button variant="ghost" size="icon" className="h-8 w-8">
+                <MoreVertical className="h-4 w-4" />
+                <span className="sr-only">Save options</span>
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align='end'>
-              <DropdownMenuItem onClick={() => handleSave('saveTab')}>
-                <FileText className='mr-2 h-4 w-4' />
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => handleSave("saveTab")}>
+                <FileText className="mr-2 h-4 w-4" />
                 <span>Save Tab</span>
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleSave('saveWindow')}>
-                <Layout className='mr-2 h-4 w-4' />
+              <DropdownMenuItem onClick={() => handleSave("saveWindow")}>
+                <Layout className="mr-2 h-4 w-4" />
                 <span>Save Window</span>
               </DropdownMenuItem>
               {multipleWindows && (
-                <DropdownMenuItem onClick={() => handleSave('saveAll')}>
-                  <Save className='mr-2 h-4 w-4' />
+                <DropdownMenuItem onClick={() => handleSave("saveAll")}>
+                  <Save className="mr-2 h-4 w-4" />
                   <span>Save All Windows</span>
                 </DropdownMenuItem>
               )}
               <DropdownMenuItem
                 onClick={() =>
                   handleLinkClick(
-                    'chrome-extension://jgmehmdjfpbhfcjhckigpgookjjdgojp/src/options/index.html'
+                    "chrome-extension://jgmehmdjfpbhfcjhckigpgookjjdgojp/src/options/index.html"
                   )
                 }
               >
-                <Settings2 className='mr-2 h-4 w-4' />
+                <Settings2 className="mr-2 h-4 w-4" />
                 <span>More Settings</span>
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() =>
-                  handleLinkClick('https://github.com/Hasbi-sabah/101tabs')
+                  handleLinkClick("https://github.com/Hasbi-sabah/101tabs")
                 }
               >
-                <Github className='mr-2 h-4 w-4' />
+                <Github className="mr-2 h-4 w-4" />
                 <span>Check our Github</span>
               </DropdownMenuItem>
               {/* <DropdownMenuItem onClick={handleJulienMode}>
@@ -220,22 +218,22 @@ export default function Popup(): JSX.Element {
           </DropdownMenu>
         </div>
       </div>
-      {current === 'main' && (
+      {current === "main" && (
         <MainPopUp tabs={tabs} expiringTabs={expiringTabs} />
       )}
-      {current === 'pinned' && <PinnedTabs />}
-      {current === 'options' && (
+      {current === "pinned" && <PinnedTabs />}
+      {current === "options" && (
         <Options
           // julienMode={julienMode}
           tabLimit={tabLimit}
           expirationDays={expirationDays}
-          handleCancel={() => setCurrent('main')}
+          handleCancel={() => setCurrent("main")}
           // setJulienMode={setJulienMode}
           setTabLimit={setTabLimit}
           setExpirationDays={setExpirationDays}
         />
       )}
-      {current === 'expiring' && <ExpiringTabs setTabs={setTabs} />}
+      {current === "expiring" && <ExpiringTabs setTabs={setTabs} />}
     </div>
   );
 }

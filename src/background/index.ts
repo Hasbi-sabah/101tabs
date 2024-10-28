@@ -93,6 +93,10 @@ chrome.runtime.onInstalled.addListener(() => {
         chrome.action.openPopup(() => {
             chrome.runtime.sendMessage({
                 type: 'FIRST_INSTALL',
+            }, () => {
+                if (chrome.runtime.lastError) {
+                    //pass
+                }
             });
         })
     } catch (e) {
@@ -221,6 +225,8 @@ chrome.runtime.onMessage.addListener((message, _, sendResponse) => {
     } catch (e) {
         //pass
     }
+    sendResponse(null)
+    return true;
 });
 
 chrome.tabs.onCreated.addListener((tab) => {
