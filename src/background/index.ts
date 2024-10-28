@@ -295,6 +295,10 @@ chrome.alarms.onAlarm.addListener((alarm) => {
                         chrome.runtime.sendMessage({
                             type: 'EXPIRING_TABS',
                             tabs: expiringTabs
+                        }, () => {
+                            if (chrome.runtime.lastError) {
+                                //pass
+                            }
                         });
                     });
                 }
